@@ -1,0 +1,1999 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IPSKA Dashboard Premium</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css" />
+    <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+    <script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"></script>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <style>
+        :root {
+            --primary: #1E3A8A;
+            --primary-light: #3B82F6;
+            --secondary: #D4AF37; /* IPSKA secondary color */
+            --success: #10B981;
+            --warning: #F59E0B;
+            --danger: #EF4444;
+            --info: #3B82F6;
+            --process: #8B5CF6;
+            --dark: #1F2937;
+            --light: #F9FAFB;
+            --card-bg: #FFFFFF;
+            --sidebar-bg: linear-gradient(180deg, #1E3A8A 0%, #1A237E 100%);
+            --border-radius: 10px;
+            --box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+            --transition: all 0.3s ease;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', sans-serif;
+        }
+
+        body {
+            background-color: #F3F4F6;
+            color: var(--dark);
+            min-height: 100vh;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        /* Layout */
+        .app-container {
+            display: grid;
+            grid-template-columns: 280px 1fr;
+            min-height: 100vh;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            background: var(--sidebar-bg);
+            color: white;
+            padding: 2rem 1.5rem;
+            box-shadow: 4px 0 20px rgba(0, 0, 0, 0.1);
+            position: relative;
+            z-index: 10;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 2.5rem;
+        }
+
+        .logo-icon {
+            font-size: 1.8rem;
+            color: var(--secondary);
+        }
+
+        .logo-text {
+            font-size: 1.5rem;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+        }
+
+        .nav-menu {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 0.8rem 1rem;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            transition: var(--transition);
+            color: rgba(255, 255, 255, 0.8);
+            font-weight: 500;
+        }
+
+        .nav-item:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+        }
+
+        .nav-item.active {
+            background: linear-gradient(90deg, rgba(255, 255, 255, 0.15) 0%, transparent 100%);
+            color: white;
+            border-left: 3px solid var(--secondary);
+        }
+
+        .nav-item i {
+            width: 24px;
+            text-align: center;
+            font-size: 1.1rem;
+        }
+
+        /* Sub-navbar for storytelling */
+        .nav-item.has-submenu {
+            position: relative;
+        }
+
+        .submenu {
+            display: none;
+            flex-direction: column;
+            padding-left: 20px;
+            margin-top: 5px;
+            gap: 5px;
+        }
+
+        .nav-item.has-submenu.open .submenu {
+            display: flex;
+        }
+
+        .submenu-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 0.6rem 1rem;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            transition: var(--transition);
+            color: rgba(255, 255, 255, 0.7);
+            font-weight: 400;
+            font-size: 0.9rem;
+        }
+
+        .submenu-item:hover {
+            background: rgba(255, 255, 255, 0.08);
+            color: white;
+        }
+
+        .submenu-item.active {
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            font-weight: 500;
+        }
+
+        /* Main Content */
+        .main-content {
+            padding: 2rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+            overflow-x: hidden;
+        }
+
+        /* Header */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .page-title h1 {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--dark);
+        }
+
+        .page-title p {
+            color: #6B7280;
+            font-size: 0.9rem;
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+            flex-wrap: wrap;
+        }
+
+        .search-bar {
+            position: relative;
+            width: 300px;
+            min-width: 200px;
+        }
+
+        .search-bar input {
+            width: 100%;
+            padding: 0.8rem 1rem 0.8rem 2.5rem;
+            border: none;
+            border-radius: var(--border-radius);
+            background: white;
+            box-shadow: var(--box-shadow);
+            transition: var(--transition);
+            font-size: 0.9rem;
+        }
+
+        .search-bar input:focus {
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+        }
+
+        .search-bar i {
+            position: absolute;
+            left: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #9CA3AF;
+        }
+
+        .user-actions {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .notification-bell {
+            position: relative;
+            cursor: pointer;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            background: white;
+            box-shadow: var(--box-shadow);
+            transition: var(--transition);
+        }
+
+        .notification-bell:hover {
+            background: #f0f0f0;
+        }
+
+        .notification-badge {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background: var(--danger);
+            color: white;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.7rem;
+            font-weight: 600;
+            border: 2px solid #F9FAFB;
+        }
+
+        .user-profile {
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+            cursor: pointer;
+        }
+
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 1rem;
+        }
+
+        .user-name {
+            font-weight: 500;
+            font-size: 0.9rem;
+        }
+
+        .user-role {
+            font-size: 0.8rem;
+            color: #6B7280;
+        }
+
+        /* Dashboard Grid */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(12, 1fr);
+            gap: 1.5rem;
+            width: 100%;
+        }
+
+        /* Card Styles */
+        .card {
+            background: var(--card-bg);
+            border-radius: var(--border-radius);
+            box-shadow: var(--box-shadow);
+            padding: 1.5rem;
+            transition: var(--transition);
+            border: 1px solid rgba(0, 0, 0, 0.05);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.2rem;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .card-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--dark);
+        }
+
+        .card-actions {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+        }
+
+        .card-lg {
+            grid-column: span 8;
+        }
+
+        .card-md {
+            grid-column: span 4;
+        }
+
+        .card-sm {
+            grid-column: span 3;
+        }
+
+        .card-full {
+            grid-column: 1 / -1;
+        }
+        
+        .card-body {
+            flex-grow: 1;
+        }
+
+        /* Stats Card */
+        .stats-card {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .stats-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--primary);
+            margin: 0.5rem 0;
+        }
+
+        .stats-label {
+            font-size: 0.9rem;
+            color: #6B7280;
+        }
+
+        /* Progress Bar */
+        .progress-container {
+            margin-top: 1.5rem;
+        }
+
+        .progress-bar {
+            height: 8px;
+            border-radius: 4px;
+            background: #E5E7EB;
+            overflow: hidden;
+            margin-bottom: 0.8rem;
+        }
+
+        .progress {
+            height: 100%;
+            display: flex;
+        }
+
+        .progress-segment {
+            height: 100%;
+        }
+
+        /* Status Colors */
+        .progress-segment.permohonan { background: var(--info); }
+        .progress-segment.pemeriksaan { background: var(--process); }
+        .progress-segment.persetujuan { background: var(--success); }
+        .progress-segment.penerimaan { background: #059669; }
+        .progress-segment.penerbitan { background: #06B6D4; }
+        .progress-segment.penolakan { background: var(--danger); }
+        .progress-segment.pengunggahan { background: var(--warning); }
+
+        .progress-labels {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.8rem;
+            color: #6B7280;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        /* Status Cards */
+        .status-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+
+        .status-card {
+            padding: 1rem;
+            border-radius: var(--border-radius);
+            text-align: center;
+            background: white;
+            box-shadow: var(--box-shadow);
+            transition: var(--transition);
+        }
+
+        .status-card:hover {
+            transform: translateY(-3px);
+        }
+
+        .status-card.permohonan { border-top: 3px solid var(--info); }
+        .status-card.pemeriksaan { border-top: 3px solid var(--process); }
+        .status-card.persetujuan { border-top: 3px solid var(--success); }
+        .status-card.penerimaan { border-top: 3px solid #059669; }
+        .status-card.penerbitan { border-top: 3px solid #06B6D4; }
+        .status-card.penolakan { border-top: 3px solid var(--danger); }
+        .status-card.pengunggahan { border-top: 3px solid var(--warning); }
+
+        .status-value {
+            font-size: 1.2rem;
+            font-weight: 700;
+            margin-bottom: 0.3rem;
+        }
+
+        .status-card.permohonan .status-value { color: var(--info); }
+        .status-card.pemeriksaan .status-value { color: var(--process); }
+        .status-card.persetujuan .status-value { color: var(--success); }
+        .status-card.penerimaan .status-value { color: #059669; }
+        .status-card.penerbitan .status-value { color: #06B6D4; }
+        .status-card.penolakan .status-value { color: var(--danger); }
+        .status-card.pengunggahan .status-value { color: var(--warning); }
+
+        .status-label {
+            font-size: 0.75rem;
+            color: #6B7280;
+        }
+
+        /* Countries List */
+        .country-list {
+            margin-top: 1rem;
+        }
+
+        .country-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.6rem 0;
+            border-bottom: 1px solid #F3F4F6;
+            transition: var(--transition);
+        }
+
+        .country-item:hover {
+            background: #F9FAFB;
+        }
+
+        .country-item:last-child {
+            border-bottom: none;
+        }
+
+        .country-name {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .country-flag {
+            width: 20px;
+            height: 14px;
+            border-radius: 2px;
+            object-fit: cover;
+        }
+
+        .country-percentage {
+            font-weight: 600;
+            color: var(--primary);
+            font-size: 0.85rem;
+        }
+
+        /* Table Styles */
+        .table-container {
+            overflow-x: auto;
+            border-radius: var(--border-radius);
+            margin-top: 1rem;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            min-width: 800px;
+        }
+
+        thead {
+            position: sticky;
+            top: 0;
+            z-index: 1;
+        }
+
+        th {
+            background: #F9FAFB;
+            color: #4B5563;
+            font-weight: 600;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            padding: 0.8rem 1rem;
+            text-align: left;
+            border-bottom: 1px solid #E5E7EB;
+            cursor: pointer; /* Add cursor for sortable headers */
+        }
+
+        th i {
+            margin-left: 5px;
+            font-size: 0.7rem;
+            color: #9CA3AF;
+        }
+
+        td {
+            padding: 0.8rem 1rem;
+            font-size: 0.85rem;
+            border-bottom: 1px solid #F3F4F6;
+            background: white;
+        }
+
+        tr:hover td {
+            background: #F9FAFB;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 0.3rem 0.6rem;
+            border-radius: 20px;
+            font-size: 0.7rem;
+            font-weight: 500;
+        }
+
+        /* Status Badge Colors */
+        .status-badge.permohonan { background: rgba(59, 130, 246, 0.1); color: var(--info); }
+        .status-badge.pemeriksaan { background: rgba(139, 92, 246, 0.1); color: var(--process); }
+        .status-badge.persetujuan { background: rgba(16, 185, 129, 0.1); color: var(--success); }
+        .status-badge.penerimaan { background: rgba(5, 150, 105, 0.1); color: #059669; }
+        .status-badge.penerbitan { background: rgba(6, 182, 212, 0.1); color: #06B6D4; }
+        .status-badge.penolakan { background: rgba(239, 68, 68, 0.1); color: var(--danger); }
+        .status-badge.pengunggahan { background: rgba(245, 158, 11, 0.1); color: var(--warning); }
+
+        /* Notifications Dropdown (REVISED) */
+        .notifications-dropdown {
+            position: absolute;
+            right: 0;
+            top: 50px;
+            width: 360px;
+            max-width: 90vw;
+            background: white;
+            border-radius: var(--border-radius);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            z-index: 100;
+            display: none;
+            overflow: hidden;
+        }
+
+        .notifications-header {
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid #F3F4F6;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .notifications-title {
+            font-weight: 600;
+            font-size: 1rem;
+        }
+
+        .mark-all-read {
+            color: var(--primary);
+            font-size: 0.8rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .mark-all-read:hover {
+            opacity: 0.8;
+        }
+
+        .notification-item {
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid #F3F4F6;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+        
+        .notification-item.read {
+            opacity: 0.6;
+            background: #F9FAFB;
+        }
+
+        .notification-item:hover {
+            background: #F3F4F6;
+        }
+
+        .notification-company {
+            font-weight: 600;
+            margin-bottom: 0.3rem;
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.9rem;
+        }
+
+        .notification-time {
+            font-size: 0.7rem;
+            color: #6B7280;
+            margin-bottom: 0.6rem;
+        }
+
+        .notification-message {
+            font-size: 0.8rem;
+            color: #4B5563;
+            margin-bottom: 0.8rem;
+            line-height: 1.5;
+        }
+
+        /* Peta Eksportir */
+        #exportersMap {
+            height: 350px;
+            border-radius: var(--border-radius);
+            overflow: hidden;
+            margin-top: 1rem;
+            z-index: 1;
+        }
+
+        .map-legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            margin-top: 1rem;
+            align-items: center;
+        }
+
+        .legend-title {
+            font-size: 0.8rem;
+            color: #6B7280;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.8rem;
+        }
+
+        .legend-color {
+            width: 12px;
+            height: 12px;
+            border-radius: 3px;
+        }
+
+        /* Chart Containers */
+        .chart-container {
+            height: 350px; /* Increased height */
+            margin-top: 1rem;
+            position: relative;
+            flex-grow: 1;
+        }
+
+        /* Doughnut Container (REVISED with GRID and min-width) */
+        .doughnut-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            align-items: center;
+            gap: 1.5rem;
+            height: 100%;
+        }
+        
+        .doughnut-chart, .doughnut-info {
+            min-width: 0; /* Prevents overflow */
+        }
+
+        .doughnut-chart {
+            height: 100%;
+            min-height: 250px;
+        }
+        
+        .doughnut-info {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+        
+        .doughnut-total {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 0.5rem;
+        }
+        
+        .doughnut-label {
+            font-size: 1rem;
+            color: #6B7280;
+            margin-bottom: 1.5rem;
+        }
+        
+        .doughnut-detail-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 0.8rem;
+        }
+        
+        .doughnut-detail-color {
+            width: 12px;
+            height: 12px;
+            border-radius: 3px;
+            margin-right: 8px;
+        }
+        
+        .doughnut-detail-label {
+            flex: 1;
+            font-size: 0.85rem;
+            color: #4B5563;
+        }
+        
+        .doughnut-detail-value {
+            font-weight: 600;
+            font-size: 0.85rem;
+            color: var(--dark);
+        }
+
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .modal-content {
+            background-color: white;
+            margin: 5% auto;
+            padding: 2rem;
+            border-radius: var(--border-radius);
+            width: 80%;
+            max-width: 800px;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+        }
+        
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+        
+        .modal-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+        
+        .close-modal {
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: #6B7280;
+            transition: var(--transition);
+        }
+        
+        .close-modal:hover {
+            color: var(--dark);
+        }
+        
+        .modal-body {
+            margin-bottom: 1.5rem;
+        }
+        
+        .modal-footer {
+            display: flex;
+            justify-content: flex-end;
+        }
+
+        /* Bar Chart Race Styles */
+        #raceChart {
+            height: 100%;
+            width: 100%;
+            font-family: sans-serif;
+            position: relative;
+            overflow: visible;
+        }
+        #raceChart svg {
+            width: 100%;
+            height: 100%;
+            overflow: visible;
+        }
+        .race-bar {
+            fill-opacity: 0.7;
+            cursor: pointer;
+        }
+        .race-bar-label {
+            font-size: 12px;
+            fill: #333;
+            text-anchor: end;
+            dominant-baseline: middle;
+            font-weight: 500;
+        }
+        .race-axis path, .race-axis line {
+            stroke: #ccc;
+        }
+        .race-axis text {
+            font-size: 10px;
+            fill: #6B7280;
+        }
+        .race-date {
+            font-size: 2.5em;
+            font-weight: bold;
+            fill: #ccc;
+            text-anchor: end;
+        }
+	.race-bar-value {
+            font-size: 12px;
+            fill: white; /* Penjelasan: Warna teks kita buat selalu putih */
+            text-anchor: end;
+            dominant-baseline: middle;
+            font-weight: 600;
+            /* Penjelasan: Kunci utama agar teks selalu terbaca di warna apapun */
+            text-shadow: 0px 0px 3px #000000, 0px 0px 3px #000000;
+        }
+
+        /* Button Styles */
+        .btn {
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: var(--border-radius);
+            padding: 0.6rem 1.2rem;
+            font-size: 0.85rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: var(--transition);
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn:hover {
+            background: #1C3D8C;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        .btn i {
+            font-size: 0.9rem;
+        }
+
+        /* Filter Section */
+        .filter-section {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            align-items: flex-end;
+        }
+
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            min-width: 200px;
+            flex: 1;
+        }
+
+        .filter-label {
+            font-size: 0.8rem;
+            font-weight: 500;
+            color: #4B5563;
+        }
+
+        .filter-select {
+            padding: 0.7rem 1rem;
+            border: 1px solid #E5E7EB;
+            border-radius: var(--border-radius);
+            background: white;
+            font-size: 0.85rem;
+            transition: var(--transition);
+        }
+
+        .filter-select:focus {
+            outline: none;
+            border-color: var(--primary-light);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+        }
+
+        /* Info Text */
+        .info-text {
+            font-size: 0.8rem;
+            color: #6B7280;
+            margin-top: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        /* Map and Country Grid */
+        .map-country-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 1.5rem;
+        }
+
+        /* Detail Modal Specific Styles */
+        .detail-modal-content {
+            background-color: white;
+            padding: 2rem;
+            border-radius: var(--border-radius);
+            width: 90%;
+            max-width: 600px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+            text-align: center;
+        }
+
+        .detail-modal-icon {
+            font-size: 3rem;
+            color: var(--primary);
+            margin-bottom: 1rem;
+        }
+
+        .detail-modal-title {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--dark);
+            margin-bottom: 1.5rem;
+        }
+
+        .detail-modal-info {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            text-align: left;
+            margin-bottom: 2rem;
+        }
+
+        .detail-modal-info p {
+            margin-bottom: 0.5rem;
+        }
+
+        .detail-modal-info strong {
+            color: var(--dark);
+        }
+
+        .detail-modal-status-badge {
+            font-size: 1rem;
+            padding: 0.5rem 1rem;
+            border-radius: 25px;
+            font-weight: 600;
+            display: inline-block;
+            margin-top: 1rem;
+        }
+
+        /* Analysis Container */
+        .analysis-container {
+            display: grid;
+            grid-template-columns: 2fr 1fr; /* Default for larger screens */
+            gap: 1.5rem;
+            padding: 1rem 0;
+        }
+
+        .analysis-chart {
+            background: white;
+            border-radius: var(--border-radius);
+            padding: 1rem;
+            min-height: 300px; /* Ensure it has a height */
+        }
+
+        .analysis-text {
+            background: #F9FAFB;
+            border-radius: var(--border-radius);
+            padding: 1.5rem;
+            font-size: 0.9rem;
+            line-height: 1.6;
+            border: 1px solid #F3F4F6;
+        }
+
+        .analysis-text h3 {
+            color: var(--primary);
+            margin-bottom: 1rem;
+            font-size: 1.1rem;
+        }
+
+        .analysis-text p {
+            margin-bottom: 1rem;
+        }
+
+        .analysis-text .highlight {
+            background-color: rgba(212, 175, 55, 0.2); /* IPSKA secondary color highlight */
+            padding: 0.2rem 0.4rem;
+            border-radius: 4px;
+            font-weight: 600;
+            color: #a47d07;
+        }
+
+        #performanceComparisonChart {
+            min-height: 350px;
+            width: 100%;
+            flex-grow: 1;
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 1400px) {
+            .dashboard-grid { grid-template-columns: repeat(6, 1fr); }
+            .card-lg { grid-column: span 6; }
+            .card-md { grid-column: span 3; }
+            .card-sm { grid-column: span 2; }
+            .map-country-grid { grid-template-columns: 1fr 1fr; }
+        }
+
+        @media (max-width: 1200px) {
+            .app-container { grid-template-columns: 80px 1fr; }
+            .sidebar { padding: 1rem 0.5rem; }
+            .logo-text, .nav-item span { display: none; }
+            .logo { justify-content: center; margin-bottom: 1.5rem; }
+            .nav-item { justify-content: center; padding: 0.8rem 0; }
+            .nav-item i { font-size: 1.2rem; }
+            .nav-item.has-submenu .submenu {
+                position: absolute; left: 80px; top: 0;
+                background: var(--sidebar-bg); padding: 10px;
+                border-radius: var(--border-radius); box-shadow: var(--box-shadow);
+                width: 200px; z-index: 100;
+            }
+            .nav-item.has-submenu:hover .submenu, .nav-item.has-submenu.open .submenu { display: flex; }
+        }
+
+        @media (max-width: 992px) {
+            .app-container { grid-template-columns: 1fr; }
+            .sidebar { display: none; }
+            .dashboard-grid, .map-country-grid, .analysis-container, .doughnut-container { grid-template-columns: 1fr; }
+            .card-lg, .card-md, .card-sm, .card-full { grid-column: span 1; }
+            .doughnut-info { padding-left: 0; padding-top: 1rem; width: 100%; }
+            .filter-section { flex-direction: column; align-items: stretch; }
+            .filter-group { min-width: 100%; }
+            .detail-modal-info { grid-template-columns: 1fr; }
+        }
+
+        @media (max-width: 768px) {
+            .main-content { padding: 1.5rem; }
+            .header { flex-direction: column; align-items: flex-start; gap: 1rem; }
+            .header-actions { width: 100%; justify-content: space-between; }
+            .search-bar { width: 100%; }
+            .status-cards { grid-template-columns: repeat(2, 1fr); }
+        }
+
+        @media (max-width: 576px) {
+            .main-content { padding: 1rem; }
+            .user-name, .user-role { display: none; }
+            .status-cards { grid-template-columns: 1fr; }
+            .chart-container, #exportersMap, #raceChart { height: 300px; }
+            .modal-content, .detail-modal-content { width: 95%; padding: 1rem; }
+        }
+
+        /* Content Display Logic */
+        .content-section, .content-subsection { display: none; }
+        .content-section.active { display: flex; flex-direction: column; gap: 1.5rem; }
+        .content-subsection.active { display: block; }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <div class="sidebar">
+            <div class="logo">
+                <div class="logo-icon">
+                    <i class="fas fa-box-open"></i>
+                </div>
+                <div class="logo-text">IPSKA</div>
+            </div>
+            
+            <div class="nav-menu">
+                <div class="nav-item active" data-section="dashboard">
+                    <i class="fas fa-chart-pie"></i>
+                    <span>Dashboard</span>
+                </div>
+                <div class="nav-item" data-section="pengawasan">
+                    <i class="fas fa-eye"></i>
+                    <span>Pengawasan</span>
+                </div>
+                <div class="nav-item" data-section="dokumen">
+                    <i class="fas fa-file-alt"></i>
+                    <span>Dokumen</span>
+                </div>
+                <div class="nav-item has-submenu" data-section="analisis-data">
+                    <i class="fas fa-chart-line"></i>
+                    <span>Analisis Data</span>
+                    <div class="submenu">
+                        <div class="submenu-item" data-subsection="tren-pengajuan-global">Tren Pengajuan Global</div>
+                        <div class="submenu-item" data-subsection="performa-komoditas">Performa Komoditas</div>
+                        <div class="submenu-item" data-subsection="efisiensi-proses-verifikasi">Efisiensi Proses Verifikasi</div>
+                        <div class="submenu-item" data-subsection="kepatuhan-eksportir">Kepatuhan Eksportir</div>
+                        <div class="submenu-item" data-subsection="dampak-kebijakan">Dampak Kebijakan</div>
+                        <div class="submenu-item" data-subsection="analisis-geografis">Analisis Geografis</div>
+                        <div class="submenu-item" data-subsection="komparasi-performa">Komparasi Performa</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <div class="header">
+                <div class="page-title">
+                    <h1 id="mainPageTitle">Dashboard Pengajuan</h1>
+                    <p id="mainPageSubtitle">Ringkasan aktivitas pengajuan ekspor terbaru</p>
+                </div>
+                
+                <div class="header-actions">
+                    <div class="search-bar">
+                        <i class="fas fa-search"></i>
+                        <input type="text" placeholder="Cari perusahaan...">
+                    </div>
+                    
+                    <div class="user-actions">
+                        <div class="notification-bell" id="notificationBell">
+                            <i class="fas fa-bell"></i>
+                            <div class="notification-badge">3</div>
+                            <div class="notifications-dropdown" id="notificationsDropdown">
+                                <div class="notifications-header">
+                                    <div class="notifications-title">Notifikasi</div>
+                                    <div class="mark-all-read">Tandai semua terbaca</div>
+                                </div>
+                                <div class="notifications-content">
+                                    </div>
+                            </div>
+                        </div>
+                        
+                        <div class="user-profile">
+                            <div class="user-avatar">AD</div>
+                            <div>
+                                <div class="user-name">Admin IPSKA</div>
+                                <div class="user-role">Super Admin</div>
+                            </div>
+                        </div>
+                        <button class="btn" onclick="logout()">Logout</button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="dashboard-section" class="content-section active">
+                <div class="card">
+                    <div class="filter-section">
+                        <div class="filter-group">
+                            <label class="filter-label">Periode</label>
+                            <select class="filter-select" id="periodFilter">
+                                <option value="Semua">Semua</option>
+                                <option value="hari-ini">Hari Ini</option>
+                                <option value="minggu-ini">Minggu Ini</option>
+                                <option value="bulan-ini">Bulan Ini</option>
+                                <option value="tahun-ini">Tahun Ini</option>
+                                <option value="Kustom">Kustom</option>
+                            </select>
+                            <input type="date" id="startDate" class="filter-select" style="display: none; margin-top: 0.5rem;">
+                            <input type="date" id="endDate" class="filter-select" style="display: none; margin-top: 0.5rem;">
+                        </div>
+                        <div class="filter-group">
+                            <label class="filter-label">Komoditas</label>
+                            <select class="filter-select" id="commodityFilter">
+                                <option value="Semua Komoditas">Semua Komoditas</option>
+                                <option value="Minyak Kelapa Sawit">Minyak Kelapa Sawit</option>
+                                <option value="Kopi">Kopi</option>
+                                <option value="Tekstil">Tekstil</option>
+                                <option value="Elektronik">Elektronik</option>
+                                <option value="Teh">Teh</option>
+                                <option value="Karet">Karet</option>
+                                <option value="Kakao">Kakao</option>
+                                <option value="Batubara Thermal">Batubara Thermal</option>
+                                <option value="Batubara Kokas">Batubara Kokas</option>
+                                <option value="Listrik">Listrik</option>
+                                <option value="Energi Terbarukan">Energi Terbarukan</option>
+                            </select>
+                        </div>
+                        <div class="filter-group">
+                            <label class="filter-label">Negara Tujuan</label>
+                            <select class="filter-select" id="countryFilter">
+                                <option value="Semua Negara">Semua Negara</option>
+                                <option value="Thailand">Thailand</option>
+                                <option value="Jepang">Jepang</option>
+                                <option value="Korea Selatan">Korea Selatan</option>
+                                <option value="China">China</option>
+                                <option value="Indonesia">Indonesia</option>
+                                <option value="Singapura">Singapura</option>
+                                <option value="Malaysia">Malaysia</option>
+                                <option value="Vietnam">Vietnam</option>
+                                <option value="Filipina">Filipina</option>
+                                <option value="Australia">Australia</option>
+                                <option value="India">India</option>
+                                <option value="Amerika Serikat">Amerika Serikat</option>
+                                <option value="Jerman">Jerman</option>
+                                <option value="Inggris">Inggris</option>
+                            </select>
+                        </div>
+                        <div class="filter-group">
+                            <label class="filter-label">Status</label>
+                            <select class="filter-select" id="statusFilter">
+                                <option value="Semua Status">Semua Status</option>
+                                <option value="Permohonan">Permohonan</option>
+                                <option value="Pemeriksaan">Pemeriksaan</option>
+                                <option value="Persetujuan">Persetujuan</option>
+                                <option value="Penerimaan">Penerimaan</option>
+                                <option value="Penerbitan">Penerbitan</option>
+                                <option value="Penolakan">Penolakan</option>
+                                <option value="Pengunggahan">Pengunggahan</option>
+                            </select>
+                        </div>
+                        <div class="filter-group">
+                            <button class="btn" id="applyFilterBtn">
+                                <i class="fas fa-filter"></i> Terapkan Filter
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="dashboard-grid">
+                    <div class="card card-sm">
+                        <div class="card-header">
+                            <div class="card-title">Total Pengajuan</div>
+                        </div>
+                        <div class="card-body">
+                            <div class="stats-card">
+                                <div class="stats-value" id="totalSubmissions">0</div>
+                                <div class="stats-label">Jumlah total pengajuan</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="card card-sm">
+                        <div class="card-header">
+                            <div class="card-title">Rata-Rata Waktu Proses</div>
+                        </div>
+                        <div class="card-body">
+                            <div class="stats-card">
+                                <div class="stats-value" id="avgProcessTime">0 Hari</div>
+                                <div class="stats-label">Dari pengajuan selesai</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card card-sm">
+                        <div class="card-header">
+                            <div class="card-title">Pengajuan Terverifikasi</div>
+                        </div>
+                        <div class="card-body">
+                            <div class="stats-card">
+                                <div class="stats-value" id="totalVerifiedSubmissions">0</div>
+                                <div class="stats-label">Jumlah pengajuan yang disetujui</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="map-country-grid">
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-title">Peta Sebaran Eksportir</div>
+                        </div>
+                        <div class="card-body">
+                            <div id="exportersMap"></div>
+                            <div class="map-legend">
+                                <div class="legend-title">Kategori Komoditas:</div>
+                                <div class="legend-item"><div class="legend-color" style="background: #1E3A8A;"></div><span>Minyak Kelapa Sawit</span></div>
+                                <div class="legend-item"><div class="legend-color" style="background: #3B82F6;"></div><span>Kopi</span></div>
+                                <div class="legend-item"><div class="legend-color" style="background: #10B981;"></div><span>Tekstil</span></div>
+                                <div class="legend-item"><div class="legend-color" style="background: #F59E0B;"></div><span>Elektronik</span></div>
+                                <div class="legend-item"><div class="legend-color" style="background: #EF4444;"></div><span>Teh</span></div>
+                                <div class="legend-item"><div class="legend-color" style="background: #8B5CF6;"></div><span>Karet</span></div>
+                                <div class="legend-item"><div class="legend-color" style="background: #F97316;"></div><span>Batubara</span></div>
+                                <div class="legend-item"><div class="legend-color" style="background: #1A237E;"></div><span>Energi</span></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-title">Negara Tujuan Teratas</div>
+                        </div>
+                        <div class="card-body">
+                            <div class="country-list" id="topCountriesList">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card card-full">
+                    <div class="card-header">
+                        <div class="card-title">Status Pengajuan</div>
+                    </div>
+                    <div class="card-body">
+                        <div class="progress-container">
+                            <div class="progress-bar">
+                                <div class="progress" id="submissionProgressBar"></div>
+                            </div>
+                            <div class="progress-labels" id="submissionProgressLabels"></div>
+                        </div>
+                        <div class="status-cards" id="submissionStatusCards"></div>
+                    </div>
+                </div>
+
+                <div class="dashboard-grid">
+                    <div class="card card-lg">
+                        <div class="card-header">
+                            <div class="card-title">Distribusi Komoditas</div>
+                        </div>
+                        <div class="card-body">
+                            <div class="chart-container" style="height: 300px;">
+                                <div class="doughnut-container">
+                                    <div class="doughnut-chart" id="commodityDoughnutChart"></div>
+                                    <div class="doughnut-info" id="commodityDoughnutInfo"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card card-md">
+                        <div class="card-header">
+                            <div class="card-title">Tren Volume Komoditas (Kumulatif)</div>
+                        </div>
+                        <div class="card-body">
+                             <div class="filter-section" style="margin-bottom: 1rem; flex-direction: row; align-items: flex-end;">
+                                <div class="filter-group" style="min-width: 150px;">
+                                    <label class="filter-label" for="raceChartPeriodFilter">Periode</label>
+                                    <select class="filter-select" id="raceChartPeriodFilter" style="padding: 0.4rem 0.8rem; font-size: 0.8rem;">
+                                        <option value="Semua">Semua Waktu</option>
+                                        <option value="2023">Tahun 2023</option>
+                                        <option value="2022">Tahun 2022</option>
+                                        <option value="2021">Tahun 2021</option>
+                                        <option value="Kustom">Kustom</option>
+                                    </select>
+                                </div>
+                                <div class="filter-group" id="raceDateFilters" style="display: none; flex-direction: row; gap: 0.5rem;">
+                                    <input type="date" id="raceStartDate" class="filter-select" style="padding: 0.4rem; font-size: 0.8rem;">
+                                    <input type="date" id="raceEndDate" class="filter-select" style="padding: 0.4rem; font-size: 0.8rem;">
+                                </div>
+                             </div>
+                            <div id="raceChart" style="height: 380px;"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card card-full">
+                    <div class="card-header">
+                        <div class="card-title">Pengajuan Terbaru</div>
+                        <div class="card-actions">
+                            <button class="btn" id="viewAllSubmissionsBtn">Lihat Semua</button>
+                            <button class="btn" id="exportLatestSubmissionsBtn">
+                                <i class="fas fa-download"></i> Export CSV
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-container">
+                            <table id="latestSubmissionsTable">
+                                <thead>
+                                    <tr>
+                                        <th data-sort="id">ID Pengajuan <i class="fas fa-sort"></i></th>
+                                        <th data-sort="date">Tanggal <i class="fas fa-sort"></i></th>
+                                        <th data-sort="company">Perusahaan <i class="fas fa-sort"></i></th>
+                                        <th data-sort="commodity">Komoditas <i class="fas fa-sort"></i></th>
+                                        <th data-sort="country">Negara Tujuan <i class="fas fa-sort"></i></th>
+                                        <th data-sort="status">Status <i class="fas fa-sort"></i></th>
+                                        <th>Aksi</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="analisis-data-section" class="content-section">
+
+                <div class="card card-full" style="background: linear-gradient(135deg, #1E3A8A, #1A237E); color: white;">
+                    <div class="card-header" style="border-bottom: 1px solid rgba(255,255,255,0.2); margin-bottom: 1rem;">
+                        <div class="card-title" style="color: white;"><i class="fas fa-book-reader" style="margin-right: 10px;"></i>Ringkasan Eksekutif Analisis Data</div>
+                    </div>
+                    <div class="card-body" id="executiveSummaryText" style="font-size: 1rem; line-height: 1.7;">
+                        <p>Memuat analisis data...</p>
+                    </div>
+                </div>
+
+                <div id="tren-pengajuan-global-subsection" class="content-subsection">
+                    <div class="card card-full">
+                        <div class="card-header">
+                            <div class="card-title">Tren Pengajuan Global IPSKA</div>
+                            <div class="card-actions">
+                                <select class="filter-select" id="storytelling-trend-periodFilter">
+                                    <option value="1-tahun-terakhir">1 Tahun Terakhir</option>
+                                    <option value="3-tahun-terakhir">3 Tahun Terakhir</option>
+                                    <option value="semua-data">Semua Data</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <div class="analysis-container">
+                                <div class="analysis-chart" id="storytellingTrendAnalysisChart"></div>
+                                <div class="analysis-text" id="storytellingDynamicAnalysisText">
+                                    <h3>Wawasan Tren Pengajuan</h3>
+                                    <p>Analisis ini memberikan gambaran tentang dinamika pengajuan ekspor yang diterima IPSKA dari waktu ke waktu. Memahami tren ini penting untuk perencanaan kapasitas dan identifikasi potensi masalah.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="performa-komoditas-subsection" class="content-subsection">
+                    <div class="card card-full">
+                        <div class="card-header">
+                            <div class="card-title">Performa Komoditas dalam Pengajuan IPSKA</div>
+                            <div class="card-actions">
+                                <select class="filter-select" id="storytelling-commodity-periodFilter">
+                                    <option value="tahun-ini">Tahun Ini</option>
+                                    <option value="tahun-lalu">Tahun Lalu</option>
+                                    <option value="semua-data">Semua Data</option>
+                                </select>
+                            </div>
+                        </div>
+                         <div class="card-body">
+                            <div class="analysis-container">
+                                <div class="analysis-chart" id="storytellingCommodityChart"></div>
+                                <div class="analysis-text" id="storytellingCommodityText">
+                                    <h3>Wawasan Performa Komoditas</h3>
+                                    <p>Bagian ini menganalisis komoditas mana yang paling sering diajukan dan bagaimana performa verifikasinya. Pemahaman ini krusial untuk IPSKA dalam mengidentifikasi komoditas berisiko tinggi.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="efisiensi-proses-verifikasi-subsection" class="content-subsection">
+                    <div class="card card-full">
+                        <div class="card-header">
+                            <div class="card-title">Efisiensi Proses Verifikasi IPSKA</div>
+                            <div class="card-actions">
+                                <select class="filter-select" id="storytelling-efficiency-periodFilter">
+                                    <option value="6-bulan-terakhir">6 Bulan Terakhir</option>
+                                    <option value="1-tahun-terakhir">1 Tahun Terakhir</option>
+                                    <option value="semua-data">Semua Data</option>
+                                </select>
+                            </div>
+                        </div>
+                         <div class="card-body">
+                            <div class="analysis-container">
+                                <div class="analysis-chart" id="storytellingEfficiencyChart"></div>
+                                <div class="analysis-text" id="storytellingEfficiencyText">
+                                    <h3>Wawasan Efisiensi Proses</h3>
+                                    <p>Efisiensi adalah kunci. Analisis ini menyoroti rata-rata waktu yang dibutuhkan untuk memproses pengajuan dari awal hingga akhir, serta mengidentifikasi tahapan yang paling memakan waktu (bottleneck).</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="kepatuhan-eksportir-subsection" class="content-subsection">
+                    <div class="card card-full">
+                        <div class="card-header">
+                            <div class="card-title">Analisis Kepatuhan Eksportir</div>
+                        </div>
+                        <div class="card-body">
+                            <div class="analysis-container">
+                                <div class="analysis-chart" id="storytellingComplianceChart"></div>
+                                <div class="analysis-text" id="storytellingComplianceText">
+                                    <h3>Wawasan Kepatuhan Eksportir</h3>
+                                    <p>Tingkat kepatuhan eksportir secara langsung mempengaruhi efisiensi IPSKA. Bagian ini menganalisis tingkat penolakan pengajuan dan mengidentifikasi jenis pengajuan yang sering mengalami masalah.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="dampak-kebijakan-subsection" class="content-subsection">
+                    <div class="card card-full">
+                        <div class="card-header">
+                            <div class="card-title">Simulasi Dampak Kebijakan Terhadap Pengajuan IPSKA</div>
+                        </div>
+                        <div class="card-body">
+                            <div class="analysis-container">
+                                <div class="analysis-chart" id="storytellingPolicyChart"></div>
+                                <div class="analysis-text" id="storytellingPolicyText">
+                                    <h3>Wawasan Dampak Kebijakan</h3>
+                                    <p>Perubahan kebijakan perdagangan dapat memiliki dampak signifikan. Analisis ini menyimulasikan dampak dari sebuah kebijakan baru terhadap volume pengajuan untuk komoditas tertentu.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="analisis-geografis-subsection" class="content-subsection">
+                    <div class="card card-full">
+                        <div class="card-header">
+                            <div class="card-title">Analisis Geografis Berdasarkan Negara Tujuan</div>
+                            <div class="card-actions">
+                                <select class="filter-select" id="geographic-country-filter"></select>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <div class="analysis-container">
+                                <div class="analysis-chart" id="geographicAnalysisChart"></div>
+                                <div class="analysis-text" id="geographicAnalysisText">
+                                    <h3>Wawasan Pasar Tujuan</h3>
+                                    <p>Pilih sebuah negara untuk melihat komoditas unggulan yang diekspor ke pasar tersebut. Analisis ini membantu mengidentifikasi kekuatan produk Indonesia di kancah internasional.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+
+                <div id="komparasi-performa-subsection" class="content-subsection">
+                    <div class="card card-full">
+                        <div class="card-header">
+                            <div class="card-title">Komparasi Performa Pengajuan</div>
+                            <div class="card-actions">
+                                <select class="filter-select" id="comparisonFilter">
+                                    <option value="komoditas">Berdasarkan Komoditas</option>
+                                    <option value="negara">Berdasarkan Negara</option>
+                                    <option value="bulan">Berdasarkan Bulan</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <div class="chart-container" id="performanceComparisonChart"></div>
+                            <div class="card-footer" id="comparisonInsights" style="padding-top: 1.5rem; border-top: 1px solid #eee; margin-top: 1rem; font-size: 0.9rem;">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="pengawasan-section" class="content-section">
+                <div class="card card-full" style="text-align: center; padding: 3rem;">
+                    <i class="fas fa-tools" style="font-size: 3rem; color: #ccc; margin-bottom: 1rem;"></i>
+                    <h2>Fitur Dalam Pengembangan</h2>
+                    <p style="color: #6B7280;">Halaman untuk pengawasan aktivitas verifikator akan segera tersedia.</p>
+                </div>
+            </div>
+
+            <div id="dokumen-section" class="content-section">
+                 <div class="card card-full" style="text-align: center; padding: 3rem;">
+                    <i class="fas fa-file-archive" style="font-size: 3rem; color: #ccc; margin-bottom: 1rem;"></i>
+                    <h2>Fitur Dalam Pengembangan</h2>
+                    <p style="color: #6B7280;">Halaman untuk manajemen dokumen dan arsip akan segera tersedia.</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <div id="allSubmissionsModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">Semua Pengajuan</h2>
+                <span class="close-modal">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="table-container">
+                    <table id="allSubmissionsTable">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Perusahaan</th>
+                                <th>Komoditas</th>
+                                <th>Negara</th>
+                                <th>Tanggal</th>
+                                <th>Status</th>
+                                <th>Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="submissionDetailModal" class="modal">
+        <div class="detail-modal-content">
+             <div class="modal-header">
+                <h2 class="modal-title">Detail Pengajuan</h2>
+                <span class="close-modal">&times;</span>
+            </div>
+            <div class="modal-body">
+                <i class="fas fa-file-invoice detail-modal-icon"></i>
+                <h3 class="detail-modal-title" id="detailSubmissionId"></h3>
+                <div class="detail-modal-info">
+                    <p><strong>Perusahaan:</strong> <span id="detailCompany"></span></p>
+                    <p><strong>Komoditas:</strong> <span id="detailCommodity"></span></p>
+                    <p><strong>Negara Tujuan:</strong> <span id="detailCountry"></span></p>
+                    <p><strong>Tanggal Pengajuan:</strong> <span id="detailDate"></span></p>
+                    <p><strong>Volume (Ton):</strong> <span id="detailVolume"></span></p>
+                    <p><strong>Nilai (USD):</strong> <span id="detailValue"></span></p>
+                </div>
+                <p><strong>Status:</strong> <span id="detailStatus" class="detail-modal-status-badge"></span></p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    // Data Dummy
+    const dummySubmissions = [
+        { id: 'IPSKA-001', company: 'PT Sejahtera Abadi', commodity: 'Minyak Kelapa Sawit', country: 'Thailand', date: '2023-01-15', status: 'Penerbitan', volume: 1000, value: 800000 }, { id: 'IPSKA-002', company: 'Cahaya Makmur', commodity: 'Tekstil', country: 'Jepang', date: '2023-01-20', status: 'Permohonan', volume: 500, value: 250000 }, { id: 'IPSKA-003', company: 'Gemilang Jaya', commodity: 'Elektronik', country: 'Korea Selatan', date: '2023-02-10', status: 'Persetujuan', volume: 200, value: 150000 }, { id: 'IPSKA-004', company: 'Sumber Rezeki', commodity: 'Kopi', country: 'China', date: '2023-02-25', status: 'Penerbitan', volume: 300, value: 180000 }, { id: 'IPSKA-005', company: 'Indah Permai', commodity: 'Teh', country: 'Thailand', date: '2023-03-05', status: 'Penerimaan', volume: 150, value: 75000 }, { id: 'IPSKA-006', company: 'Maju Bersama', commodity: 'Minyak Kelapa Sawit', country: 'Jepang', date: '2023-03-18', status: 'Penolakan', volume: 800, value: 640000 }, { id: 'IPSKA-007', company: 'Sentosa Raya', commodity: 'Tekstil', country: 'China', date: '2023-04-01', status: 'Pengunggahan', volume: 400, value: 200000 }, { id: 'IPSKA-008', company: 'Abadi Sentosa', commodity: 'Kopi', country: 'Korea Selatan', date: '2023-04-10', status: 'Pemeriksaan', volume: 250, value: 150000 }, { id: 'IPSKA-009', company: 'Berkah Jaya', commodity: 'Elektronik', country: 'Thailand', date: '2023-05-03', status: 'Permohonan', volume: 180, value: 135000 }, { id: 'IPSKA-010', company: 'Nusantara Export', commodity: 'Teh', country: 'Jepang', date: '2023-05-12', status: 'Persetujuan', volume: 120, value: 60000 }, { id: 'IPSKA-011', company: 'Global Trade', commodity: 'Minyak Kelapa Sawit', country: 'China', date: '2023-06-01', status: 'Penerbitan', volume: 1100, value: 880000 }, { id: 'IPSKA-012', company: 'Asia Raya', commodity: 'Tekstil', country: 'Korea Selatan', date: '2023-06-15', status: 'Penerimaan', volume: 550, value: 275000 }, { id: 'IPSKA-013', company: 'Sinar Harapan', commodity: 'Kopi', country: 'Indonesia', date: '2023-07-01', status: 'Permohonan', volume: 320, value: 192000 }, { id: 'IPSKA-014', company: 'Jaya Abadi', commodity: 'Elektronik', country: 'Singapura', date: '2023-07-10', status: 'Pemeriksaan', volume: 220, value: 165000 }, { id: 'IPSKA-015', company: 'Makmur Sentosa', commodity: 'Minyak Kelapa Sawit', country: 'Malaysia', date: '2023-08-01', status: 'Persetujuan', volume: 950, value: 760000 }, { id: 'IPSKA-016', company: 'Berkah Ilahi', commodity: 'Teh', country: 'Vietnam', date: '2023-08-15', status: 'Penerbitan', volume: 130, value: 65000 }, { id: 'IPSKA-017', company: 'Cipta Karya', commodity: 'Tekstil', country: 'Filipina', date: '2023-09-01', status: 'Penerimaan', volume: 480, value: 240000 }, { id: 'IPSKA-018', company: 'Usaha Mandiri', commodity: 'Kopi', country: 'Australia', date: '2023-09-10', status: 'Penolakan', volume: 280, value: 168000 }, { id: 'IPSKA-019', company: 'Dunia Ekspor', commodity: 'Elektronik', country: 'India', date: '2023-10-01', status: 'Pengunggahan', volume: 210, value: 157500 }, { id: 'IPSKA-020', company: 'Samudera Raya', commodity: 'Minyak Kelapa Sawit', country: 'Amerika Serikat', date: '2023-10-10', status: 'Pemeriksaan', volume: 1050, value: 840000 }, { id: 'IPSKA-021', company: 'PT Agro Jaya', commodity: 'Karet', country: 'Jerman', date: '2023-11-05', status: 'Persetujuan', volume: 600, value: 300000 }, { id: 'IPSKA-022', company: 'Indo Kakao', commodity: 'Kakao', country: 'Inggris', date: '2023-11-15', status: 'Penerbitan', volume: 400, value: 280000 }, { id: 'IPSKA-023', company: 'Tekno Maju', commodity: 'Elektronik', country: 'Jepang', date: '2023-12-01', status: 'Permohonan', volume: 190, value: 142500 }, { id: 'IPSKA-024', company: 'Kopi Nusantara', commodity: 'Kopi', country: 'Amerika Serikat', date: '2023-12-10', status: 'Pemeriksaan', volume: 310, value: 186000 },
+        { id: 'IPSKA-025', company: 'PT Sejahtera Abadi', commodity: 'Minyak Kelapa Sawit', country: 'China', date: '2022-01-20', status: 'Penerbitan', volume: 900, value: 720000 }, { id: 'IPSKA-026', company: 'Cahaya Makmur', commodity: 'Tekstil', country: 'Vietnam', date: '2022-02-10', status: 'Persetujuan', volume: 450, value: 225000 }, { id: 'IPSKA-027', company: 'Gemilang Jaya', commodity: 'Elektronik', country: 'Korea Selatan', date: '2022-03-01', status: 'Penerimaan', volume: 180, value: 135000 }, { id: 'IPSKA-030', company: 'Maju Bersama', commodity: 'Minyak Kelapa Sawit', country: 'Malaysia', date: '2022-06-01', status: 'Pemeriksaan', volume: 750, value: 600000 }, { id: 'IPSKA-031', company: 'Sentosa Raya', commodity: 'Karet', country: 'India', date: '2022-07-01', status: 'Permohonan', volume: 550, value: 275000 },
+        { id: 'IPSKA-037', company: 'PT Sejahtera Abadi', commodity: 'Minyak Kelapa Sawit', country: 'Thailand', date: '2021-01-10', status: 'Penerbitan', volume: 850, value: 680000 }, { id: 'IPSKA-038', company: 'Cahaya Makmur', commodity: 'Kopi', country: 'China', date: '2021-02-05', status: 'Pemeriksaan', volume: 280, value: 168000 }, { id: 'IPSKA-039', company: 'Gemilang Jaya', commodity: 'Elektronik', country: 'Jepang', date: '2021-03-15', status: 'Persetujuan', volume: 170, value: 127500 },
+        { id: 'IND-001', company: 'PT Kideco Jaya Agung', commodity: 'Batubara Thermal', country: 'China', date: '2023-01-15', status: 'Penerbitan', volume: 50000, value: 3500000 }, { id: 'IND-002', company: 'PT Multi Tambangjaya Utama', commodity: 'Batubara Kokas', country: 'India', date: '2023-01-20', status: 'Permohonan', volume: 30000, value: 2400000 }, { id: 'IND-003', company: 'PT Santan Batubara', commodity: 'Batubara Thermal', country: 'Jepang', date: '2023-02-10', status: 'Persetujuan', volume: 45000, value: 3150000 }, { id: 'IND-004', company: 'PT Indika Energy', commodity: 'Listrik', country: 'Vietnam', date: '2023-02-25', status: 'Penerbitan', volume: 1000, value: 1200000 }, { id: 'IND-008', company: 'PT Indika Energy', commodity: 'Energi Terbarukan', country: 'Filipina', date: '2023-04-10', status: 'Pemeriksaan', volume: 500, value: 750000 },
+    ];
+    const dummyNotifications = [ { id: 1, company: 'PT Sejahtera Abadi', time: '19 menit lalu', message: 'Pengajuan baru untuk ekspor Minyak Kelapa Sawit ke Thailand', read: false }, { id: 2, company: 'Cahaya Makmur', time: '2 jam lalu', message: 'Permohonan revisi dokumen ekspor Tekstil', read: false }, { id: 3, company: 'Gemilang Jaya', time: '3 hari lalu', message: 'Pengajuan ekspor Elektronik telah diverifikasi', read: false }, ];
+
+    let displayedSubmissions = [...dummySubmissions];
+    let map;
+    let doughnutChart;
+    let performanceComparisonApexChart;
+    let storytellingCharts = {};
+    let raceChartCancellationToken = { cancelled: false };
+
+    // INITIALIZATION
+    document.addEventListener('DOMContentLoaded', () => {
+        initMap();
+        setupEventListeners();
+        showSection('dashboard');
+    });
+
+    // === NAVIGATION ===
+    function setupEventListeners() {
+        document.querySelectorAll('.nav-item').forEach(item => {
+            item.addEventListener('click', (e) => {
+                if (e.target.closest('.submenu')) return;
+                
+                const sectionId = item.dataset.section;
+                if (item.classList.contains('has-submenu')) {
+                    const firstSubmenuItem = item.querySelector('.submenu-item');
+                    if (firstSubmenuItem) {
+                        showSubsection(sectionId, firstSubmenuItem.dataset.subsection);
+                    }
+                } else {
+                    showSection(sectionId);
+                }
+            });
+        });
+
+        document.querySelectorAll('.submenu-item').forEach(item => {
+            item.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const sectionId = item.closest('.nav-item').dataset.section;
+                const subsectionId = item.dataset.subsection;
+                showSubsection(sectionId, subsectionId);
+            });
+        });
+
+        document.getElementById('applyFilterBtn').addEventListener('click', applyFilters);
+        document.getElementById('periodFilter').addEventListener('change', function() { document.getElementById('startDate').style.display = this.value === 'Kustom' ? 'block' : 'none'; document.getElementById('endDate').style.display = this.value === 'Kustom' ? 'block' : 'none'; });
+        document.querySelector('.search-bar input').addEventListener('input', applyFilters);
+        const racePeriodFilter = document.getElementById('raceChartPeriodFilter');
+        const raceStartDate = document.getElementById('raceStartDate');
+        const raceEndDate = document.getElementById('raceEndDate');
+        const triggerRaceChartRender = () => renderRaceChart(filterDataForRaceChart());
+        racePeriodFilter.addEventListener('change', () => { document.getElementById('raceDateFilters').style.display = racePeriodFilter.value === 'Kustom' ? 'flex' : 'none'; if (racePeriodFilter.value !== 'Kustom') triggerRaceChartRender(); });
+        raceStartDate.addEventListener('change', triggerRaceChartRender);
+        raceEndDate.addEventListener('change', triggerRaceChartRender);
+        document.getElementById('storytelling-trend-periodFilter').addEventListener('change', (e) => renderStorytellingTrendAnalysis(e.target.value));
+        document.getElementById('storytelling-commodity-periodFilter').addEventListener('change', (e) => renderStorytellingCommodityPerformance(e.target.value));
+        document.getElementById('storytelling-efficiency-periodFilter').addEventListener('change', (e) => renderStorytellingEfficiency(e.target.value));
+        document.getElementById('geographic-country-filter').addEventListener('change', (e) => renderGeographicAnalysis(e.target.value));
+        document.getElementById('comparisonFilter').addEventListener('change', () => renderPerformanceComparison(document.getElementById('comparisonFilter').value));
+        document.getElementById('viewAllSubmissionsBtn').addEventListener('click', () => { renderAllSubmissions(dummySubmissions); document.getElementById('allSubmissionsModal').style.display = 'flex'; });
+        document.querySelectorAll('.modal .close-modal').forEach(btn => btn.addEventListener('click', () => btn.closest('.modal').style.display = 'none'));
+        window.addEventListener('click', (event) => { if (event.target.classList.contains('modal')) event.target.style.display = 'none'; });
+        document.getElementById('exportLatestSubmissionsBtn').addEventListener('click', () => exportTableToCSV('latestSubmissionsTable'));
+        document.getElementById('notificationBell').addEventListener('click', (e) => { e.stopPropagation(); const dropdown = document.getElementById('notificationsDropdown'); dropdown.style.display = dropdown.style.display === 'block' ? 'none' : 'block'; if(dropdown.style.display === 'block') renderNotifications(); });
+        document.querySelector('.mark-all-read').addEventListener('click', (e) => { e.stopPropagation(); document.querySelectorAll('.notification-item').forEach(item => item.classList.add('read')); document.querySelector('.notification-badge').textContent = '0'; });
+        document.addEventListener('click', (e) => { const dropdown = document.getElementById('notificationsDropdown'); if (!dropdown.contains(e.target) && !document.getElementById('notificationBell').contains(e.target)) dropdown.style.display = 'none'; });
+    }
+    
+    function showSection(sectionId) {
+        document.querySelectorAll('.content-section').forEach(s => s.classList.remove('active'));
+        document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active', 'open'));
+        document.querySelectorAll('.submenu-item').forEach(item => item.classList.remove('active'));
+
+        document.getElementById(`${sectionId}-section`).classList.add('active');
+        const activeNavItem = document.querySelector(`.nav-item[data-section="${sectionId}"]`);
+        if (activeNavItem) {
+            activeNavItem.classList.add('active');
+        }
+
+        const titles = { dashboard: {title: 'Dashboard Pengajuan', sub: 'Ringkasan aktivitas pengajuan ekspor terbaru'}, pengawasan: {title: 'Pengawasan Aktivitas', sub: 'Monitoring dan evaluasi'}, dokumen: {title: 'Manajemen Dokumen', sub: 'Arsip dan pencarian dokumen'} };
+        document.getElementById('mainPageTitle').textContent = titles[sectionId]?.title || 'Dashboard';
+        document.getElementById('mainPageSubtitle').textContent = titles[sectionId]?.sub || 'Selamat datang';
+        
+        if (sectionId === 'dashboard') {
+            applyFilters();
+            setTimeout(() => {
+                if (map) map.invalidateSize();
+                renderRaceChart(filterDataForRaceChart());
+            }, 100);
+        }
+    }
+
+    function showSubsection(sectionId, subsectionId) {
+        renderExecutiveSummary();
+        
+        document.querySelectorAll('.content-section').forEach(s => s.classList.remove('active'));
+        document.getElementById(`${sectionId}-section`).classList.add('active');
+
+        document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+        
+        const mainNavItem = document.querySelector(`.nav-item[data-section="${sectionId}"]`);
+        if(mainNavItem) {
+            mainNavItem.classList.add('open');
+        }
+
+        document.querySelectorAll('.submenu-item').forEach(si => si.classList.remove('active'));
+        const activeSubmenuItem = document.querySelector(`.submenu-item[data-subsection="${subsectionId}"]`);
+        if(activeSubmenuItem) {
+            activeSubmenuItem.classList.add('active');
+        }
+
+        document.querySelectorAll(`#${sectionId}-section .content-subsection`).forEach(ss => ss.classList.remove('active'));
+        const subsectionElement = document.getElementById(`${subsectionId}-subsection`);
+        if (subsectionElement) {
+            subsectionElement.classList.add('active');
+        }
+        
+        const subPageTitle = activeSubmenuItem ? activeSubmenuItem.textContent : 'Analisis Data';
+        document.getElementById('mainPageTitle').textContent = subPageTitle;
+        document.getElementById('mainPageSubtitle').textContent = `Detail analisis untuk ${subPageTitle}`;
+
+        switch (subsectionId) {
+            case 'tren-pengajuan-global': renderStorytellingTrendAnalysis(document.getElementById('storytelling-trend-periodFilter').value); break;
+            case 'performa-komoditas': renderStorytellingCommodityPerformance(document.getElementById('storytelling-commodity-periodFilter').value); break;
+            case 'efisiensi-proses-verifikasi': renderStorytellingEfficiency(document.getElementById('storytelling-efficiency-periodFilter').value); break;
+            case 'kepatuhan-eksportir': renderStorytellingCompliance(); break;
+            case 'dampak-kebijakan': renderStorytellingPolicyImpact(); break;
+            case 'komparasi-performa': renderPerformanceComparison(document.getElementById('comparisonFilter').value); break;
+            case 'analisis-geografis': populateGeographicFilter(); renderGeographicAnalysis(document.getElementById('geographic-country-filter').value); break;
+        }
+    }
+    
+    // FILTER & DATA MANIPULATION
+    function applyFilters() {
+        const period = document.getElementById('periodFilter').value;
+        const commodity = document.getElementById('commodityFilter').value;
+        const country = document.getElementById('countryFilter').value;
+        const status = document.getElementById('statusFilter').value;
+        const searchTerm = document.querySelector('.search-bar input').value.toLowerCase();
+        let filtered = [...dummySubmissions];
+        if (searchTerm) { filtered = filtered.filter(s => s.company.toLowerCase().includes(searchTerm) || s.id.toLowerCase().includes(searchTerm)); }
+        const now = new Date();
+        if (period === 'hari-ini') { filtered = filtered.filter(s => new Date(s.date).toDateString() === now.toDateString()); }
+        else if (period === 'minggu-ini') { const weekAgo = new Date(now); weekAgo.setDate(now.getDate() - 7); filtered = filtered.filter(s => new Date(s.date) >= weekAgo); }
+        else if (period === 'bulan-ini') { filtered = filtered.filter(s => new Date(s.date).getMonth() === now.getMonth() && new Date(s.date).getFullYear() === now.getFullYear()); }
+        else if (period === 'tahun-ini') { filtered = filtered.filter(s => new Date(s.date).getFullYear() === now.getFullYear()); }
+        else if (period === 'Kustom') { const start = document.getElementById('startDate').value; const end = document.getElementById('endDate').value; if (start && end) { filtered = filtered.filter(s => { const sDate = new Date(s.date); return sDate >= new Date(start) && sDate <= new Date(end); }); } }
+        if (commodity !== 'Semua Komoditas') filtered = filtered.filter(s => s.commodity === commodity);
+        if (country !== 'Semua Negara') filtered = filtered.filter(s => s.country === country);
+        if (status !== 'Semua Status') filtered = filtered.filter(s => s.status === status);
+        displayedSubmissions = filtered;
+        updateDashboard(displayedSubmissions);
+    }
+    function updateDashboard(data) {
+        document.getElementById('totalSubmissions').textContent = data.length.toLocaleString();
+        const verifiedCount = data.filter(s => s.status === 'Penerbitan' || s.status === 'Persetujuan' || s.status === 'Penerimaan').length;
+        document.getElementById('totalVerifiedSubmissions').textContent = verifiedCount.toLocaleString();
+        document.getElementById('avgProcessTime').textContent = calculateAvgProcessTime(data);
+        renderTopCountries(data);
+        renderSubmissionStatus(data);
+        renderCommodityDoughnutChart(data);
+        renderLatestSubmissions(data);
+    }
+
+    // DASHBOARD RENDERING FUNCTIONS
+    function initMap() { if (map) map.remove(); map = L.map('exportersMap').setView([-2.5489, 118.0149], 5); L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', { attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>' }).addTo(map); const markers = [ { lat: -6.2088, lng: 106.8456, name: 'Jakarta Exporter A', commodity: 'Minyak Kelapa Sawit' }, { lat: -7.2575, lng: 112.7521, name: 'Surabaya Exporter B', commodity: 'Kopi' }, { lat: 0.5103, lng: 101.4383, name: 'Riau Exporter', commodity: 'Minyak Kelapa Sawit'}, { lat: -1.5, lng: 116.0, name: 'Kideco Jaya Agung', commodity: 'Batubara Thermal' } ]; markers.forEach(marker => { let color; switch (marker.commodity) { case 'Minyak Kelapa Sawit': color = '#1E3A8A'; break; case 'Kopi': color = '#3B82F6'; break; case 'Batubara Thermal': color = '#F97316'; break; default: color = '#6B7280'; } L.circleMarker([marker.lat, marker.lng], { radius: 8, fillColor: color, color: '#000', weight: 1, opacity: 1, fillOpacity: 0.8}) .bindPopup(`<b>${marker.name}</b><br>${marker.commodity}`).addTo(map); }); }
+    function renderTopCountries(submissions) { const countryCounts = submissions.reduce((acc, s) => { acc[s.country] = (acc[s.country] || 0) + 1; return acc; }, {}); const sorted = Object.entries(countryCounts).sort(([,a],[,b]) => b-a).slice(0, 5); const total = submissions.length; const list = document.getElementById('topCountriesList'); list.innerHTML = ''; if (sorted.length === 0) { list.innerHTML = '<p class="info-text">Tidak ada data.</p>'; return; } sorted.forEach(([country, count]) => { const percentage = total > 0 ? (count / total * 100).toFixed(1) : 0; list.innerHTML += `<div class="country-item"><div class="country-name"><img src="https://flagcdn.com/16x12/${getCountryCode(country)}.png" alt="${country}" class="country-flag"><span>${country}</span></div><div class="country-percentage">${percentage}%</div></div>`; }); }
+    function renderSubmissionStatus(submissions) { const statusOrder = ['Permohonan', 'Pemeriksaan', 'Persetujuan', 'Penerimaan', 'Penerbitan', 'Penolakan', 'Pengunggahan']; const counts = statusOrder.reduce((acc, status) => ({...acc, [status]: 0}), {}); submissions.forEach(s => { if(counts.hasOwnProperty(s.status)) counts[s.status]++; }); const total = submissions.length; const progressBar = document.getElementById('submissionProgressBar'); const progressLabels = document.getElementById('submissionProgressLabels'); const statusCards = document.getElementById('submissionStatusCards'); progressBar.innerHTML = ''; progressLabels.innerHTML = ''; statusCards.innerHTML = ''; if (total === 0) { statusCards.innerHTML = '<p class="info-text">Tidak ada data status pengajuan.</p>'; return; } statusOrder.forEach(status => { const count = counts[status]; const percentage = total > 0 ? (count / total) * 100 : 0; const statusClass = status.toLowerCase().replace(/\s/g, ''); progressBar.innerHTML += `<div class="progress-segment ${statusClass}" style="width: ${percentage}%" title="${status}: ${count}"></div>`; progressLabels.innerHTML += `<span>${status}</span>`; statusCards.innerHTML += `<div class="status-card ${statusClass}"><div class="status-value">${count}</div><div class="status-label">${status}</div></div>`; }); }
+    function renderCommodityDoughnutChart(submissions) { const counts = submissions.reduce((acc, s) => { acc[s.commodity] = (acc[s.commodity] || 0) + 1; return acc; }, {}); const series = Object.values(counts); const labels = Object.keys(counts); const total = series.reduce((a, b) => a + b, 0); const options = { chart: { type: 'donut', height: '100%', parentHeightOffset: 0 }, series: series, labels: labels, colors: ['#1E3A8A', '#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#06B6D4', '#F97316'], dataLabels: { enabled: false }, legend: { show: false }, plotOptions: { pie: { donut: { size: '65%' } } } }; const chartEl = document.querySelector("#commodityDoughnutChart"); chartEl.innerHTML = ''; if(total > 0){ if (doughnutChart) doughnutChart.destroy(); doughnutChart = new ApexCharts(chartEl, options); doughnutChart.render(); } const info = document.getElementById('commodityDoughnutInfo'); info.innerHTML = `<div class="doughnut-total">${total.toLocaleString()}</div><div class="doughnut-label">Total Pengajuan</div>`; labels.forEach((label, i) => { info.innerHTML += `<div class="doughnut-detail-item"><div class="doughnut-detail-color" style="background: ${options.colors[i % options.colors.length]}"></div><div class="doughnut-detail-label">${label}</div><div class="doughnut-detail-value">${series[i].toLocaleString()}</div></div>`; }); }
+    function filterDataForRaceChart() {
+        let filtered = [...dummySubmissions];
+        const period = document.getElementById('raceChartPeriodFilter').value;
+        const now = new Date();
+        if (period === '2023') { filtered = filtered.filter(s => new Date(s.date).getFullYear() === 2023); }
+        else if (period === '2022') { filtered = filtered.filter(s => new Date(s.date).getFullYear() === 2022); }
+        else if (period === '2021') { filtered = filtered.filter(s => new Date(s.date).getFullYear() === 2021); }
+        else if (period === 'Kustom') {
+            const start = document.getElementById('raceStartDate').value;
+            const end = document.getElementById('raceEndDate').value;
+            if (start && end) {
+                filtered = filtered.filter(s => {
+                    const sDate = new Date(s.date);
+                    return sDate >= new Date(start) && sDate <= new Date(end);
+                });
+            }
+        }
+        return filtered;
+    }
+
+    async function renderRaceChart(data) {
+        raceChartCancellationToken.cancelled = true;
+        raceChartCancellationToken = { cancelled: false };
+        const localCancellationToken = raceChartCancellationToken;
+
+        const chartContainer = d3.select("#raceChart");
+        chartContainer.html("");
+
+        if (data.length === 0) {
+            chartContainer.html('<p class="info-text" style="text-align: center; padding-top: 5rem;">Tidak ada data untuk periode ini.</p>');
+            return;
+        }
+        
+        const n = 10;
+        const barSize = 30;
+        const duration = 250;
+        const margin = { top: 16, right: 6, bottom: 6, left: 130 };
+        const height = margin.top + barSize * n + margin.bottom;
+        const width = chartContainer.node().clientWidth;
+
+        const names = new Set(data.map(d => d.commodity));
+        const datevalues = Array.from(d3.rollup(data, ([d]) => d.volume, d => d.date, d => d.commodity))
+            .map(([date, data]) => [new Date(date), data])
+            .sort(([a, [b]]) => d3.ascending(a, b));
+
+        function rank(value) {
+            const data = Array.from(names, name => ({name, value: value(name) || 0}));
+            data.sort((a, b) => d3.descending(a.value, b.value));
+            for (let i = 0; i < data.length; ++i) data[i].rank = Math.min(n, i);
+            return data;
+        }
+
+        const keyframes = (() => {
+            const keyframes = [];
+            let runningValues = new Map();
+            for (const [date, values] of datevalues) {
+                for(const [name, value] of values) {
+                    runningValues.set(name, (runningValues.get(name) || 0) + value);
+                }
+                keyframes.push([date, rank(name => runningValues.get(name))]);
+            }
+            return keyframes;
+        })();
+
+        const nameframes = d3.groups(keyframes.flatMap(([, data]) => data), d => d.name);
+        const prev = new Map(nameframes.flatMap(([, data]) => d3.pairs(data, (a, b) => [b, a])));
+        const next = new Map(nameframes.flatMap(([, data]) => d3.pairs(data)));
+
+        const x = d3.scaleLinear([0, 1], [margin.left, width - margin.right]);
+        const y = d3.scaleBand(d3.range(n + 1), [margin.top, margin.top + barSize * (n + 1)]).padding(0.1);
+        const color = d3.scaleOrdinal(d3.schemeTableau10).domain(Array.from(names));
+        const formatNumber = d3.format(",d");
+
+        const svg = chartContainer.append("svg").attr("viewBox", [0, 0, width, height]).attr("width", width).attr("height", height);
+        
+        const updateBars = bars(svg);
+        const updateAxis = axis(svg);
+        const updateLabels = labels(svg);
+        const updateValues = values(svg);
+        const updateTicker = ticker(svg);
+
+        for (const keyframe of keyframes) {
+            if (localCancellationToken.cancelled) return;
+            const transition = svg.transition().duration(duration).ease(d3.easeLinear);
+            x.domain([0, keyframe[1][0].value]);
+
+            updateAxis(keyframe, transition);
+            updateBars(keyframe, transition);
+            updateLabels(keyframe, transition);
+            updateValues(keyframe, transition);
+            updateTicker(keyframe, transition);
+
+            await transition.end();
+        }
+
+        function bars(svg) {
+            let bar = svg.append("g").selectAll("rect");
+            return ([, data], transition) => bar = bar.data(data.slice(0, n), d => d.name)
+                .join(
+                    enter => enter.append("rect").attr("class", "race-bar").attr("fill", d => color(d.name)).attr("height", y.bandwidth()).attr("x", x(0)).attr("y", d => y((prev.get(d) || d).rank)).attr("width", d => x((prev.get(d) || d).value) - x(0))
+                        .call(r => r.append("title")),
+                    update => update,
+                    exit => exit.transition(transition).remove().attr("y", d => y((next.get(d) || d).rank)).attr("width", d => x((next.get(d) || d).value) - x(0))
+                )
+                .call(bar => bar.transition(transition).attr("y", d => y(d.rank)).attr("width", d => x(d.value) - x(0)))
+                .call(bar => bar.select("title").text(d => `${d.name}: ${formatNumber(d.value)} Ton`));
+        }
+        
+        function labels(svg) {
+            let label = svg.append("g").selectAll("text");
+            return ([, data], transition) => label = label.data(data.slice(0, n), d => d.name)
+                .join(
+                    enter => enter.append("text").attr("class", "race-bar-label").attr("transform", d => `translate(${x(0)},${y((prev.get(d) || d).rank)})`).attr("y", y.bandwidth() / 2).attr("x", -6).text(d => d.name),
+                    update => update,
+                    exit => exit.transition(transition).remove().attr("transform", d => `translate(${x(0)},${y((next.get(d) || d).rank)})`)
+                )
+                .call(bar => bar.transition(transition).attr("transform", d => `translate(${x(0)},${y(d.rank)})`));
+        }
+        
+        function values(svg) {
+            let value = svg.append("g").selectAll("text");
+            const threshold = 50; 
+
+            return ([, data], transition) => value = value.data(data.slice(0, n), d => d.name)
+                .join(
+                    enter => enter.append("text")
+                        .attr("class", "race-bar-value")
+                        .attr("transform", d => `translate(${x((prev.get(d) || d).value)},${y((prev.get(d) || d).rank)})`)
+                        .attr("y", y.bandwidth() / 2)
+                        .text(d => formatNumber(d.value)),
+                    update => update,
+                    exit => exit.transition(transition).remove()
+                        .attr("transform", d => `translate(${x((next.get(d) || d).value)},${y((next.get(d) || d).rank)})`)
+                )
+                .call(bar => bar.transition(transition)
+                    .attr("transform", d => `translate(${x(d.value)},${y(d.rank)})`)
+                    .tween("text", function(d) {
+                        const i = d3.interpolateRound(this.textContent.replace(/,/g, ""), d.value);
+                        return function(t) { this.textContent = formatNumber(i(t)); };
+                    })
+                    .attr("text-anchor", d => x(d.value) - x(0) < threshold ? "start" : "end")
+                    .attr("dx", d => x(d.value) - x(0) < threshold ? 6 : -6)
+                );
+        }
+
+        function axis(svg) {
+            const g = svg.append("g").attr("class", "race-axis").attr("transform", `translate(0,${margin.top})`);
+            const axis = d3.axisTop(x).ticks(width / 160, "~s").tickSizeOuter(0).tickSizeInner(-barSize * (n + y.padding()));
+            return ([, data], transition) => {
+                x.domain([0, data[0].value]);
+                g.transition(transition).call(axis);
+                g.select(".domain").remove();
+                g.selectAll(".tick line").attr("stroke-opacity", 0.1);
+            };
+        }
+
+        function ticker(svg) {
+            const now = svg.append("text").attr("class", "race-date").attr("text-anchor", "end").attr("x", width - 6).attr("y", margin.top + barSize * (n - 0.45)).attr("dy", "0.32em").text(d3.utcFormat("%Y-%m-%d")(keyframes[0][0]));
+            return ([date], transition) => { transition.end().then(() => now.text(d3.utcFormat("%Y-%m-%d")(date))); };
+        }
+    }
+
+    function renderLatestSubmissions(submissions) { const tableBody = document.querySelector('#latestSubmissionsTable tbody'); tableBody.innerHTML = ''; const sorted = submissions.sort((a,b) => new Date(b.date) - new Date(a.date)).slice(0, 10); if (sorted.length === 0) { tableBody.innerHTML = '<tr><td colspan="7" class="info-text" style="text-align:center; padding: 2rem;">Tidak ada data pengajuan ditemukan.</td></tr>'; return; } sorted.forEach(s => { tableBody.innerHTML += `<tr><td>${s.id}</td><td>${s.date}</td><td>${s.company}</td><td>${s.commodity}</td><td>${s.country}</td><td><span class="status-badge ${s.status.toLowerCase().replace(/\s/g, '')}">${s.status}</span></td><td><button class="btn" style="padding: 0.4rem 0.8rem;" onclick="showSubmissionDetail('${s.id}')">Detail</button></td></tr>`; }); }
+
+    // STORYTELLING/ANALYSIS RENDERING FUNCTIONS
+    function renderExecutiveSummary() { const totalSubmissions = dummySubmissions.length; const commodityCounts = dummySubmissions.reduce((acc, s) => { acc[s.commodity] = (acc[s.commodity] || 0) + 1; return acc; }, {}); const topCommodity = Object.entries(commodityCounts).sort(([, a], [, b]) => b - a)[0]; const countryCounts = dummySubmissions.reduce((acc, s) => { acc[s.country] = (acc[s.country] || 0) + 1; return acc; }, {}); const topCountry = Object.entries(countryCounts).sort(([, a], [, b]) => b - a)[0]; const rejectionCount = dummySubmissions.filter(s => s.status === 'Penolakan').length; const rejectionRate = totalSubmissions > 0 ? (rejectionCount / totalSubmissions * 100).toFixed(1) : 0; const summaryText = `<p>Secara keseluruhan, sistem IPSKA telah memproses total <span class="highlight">${totalSubmissions.toLocaleString()}</span> pengajuan. Komoditas yang paling dominan adalah <span class="highlight">${topCommodity[0]}</span>, mencakup ${((topCommodity[1]/totalSubmissions)*100).toFixed(1)}% dari total pengajuan.</p><p>Destinasi ekspor utama adalah <span class="highlight">${topCountry[0]}</span>. Tingkat penolakan secara umum berada di angka <span class="highlight">${rejectionRate}%</span>, menandakan perlunya perhatian lebih pada kelengkapan dokumen untuk beberapa komoditas. Analisis mendalam pada setiap bagian akan memberikan wawasan lebih lanjut.</p>`; document.getElementById('executiveSummaryText').innerHTML = summaryText; }
+    function renderStorytellingChart(containerId, options, textGenerator, data) { const chartElement = document.getElementById(containerId); const textElement = document.getElementById(containerId.replace('Chart', 'Text')); if (storytellingCharts[containerId]) storytellingCharts[containerId].destroy(); if(chartElement) { chartElement.innerHTML = ''; storytellingCharts[containerId] = new ApexCharts(chartElement, options); storytellingCharts[containerId].render(); } if (textGenerator && textElement) { textElement.innerHTML = textGenerator(data); } }
+    function renderStorytellingTrendAnalysis(period) { const data = filterDataByPeriod(dummySubmissions, period); const monthlyData = data.reduce((acc, s) => { const month = s.date.substring(0, 7); acc[month] = (acc[month] || 0) + 1; return acc; }, {}); const sortedMonths = Object.keys(monthlyData).sort(); const seriesData = sortedMonths.map(month => monthlyData[month]); const options = { series: [{ name: 'Total Pengajuan', data: seriesData }], chart: { type: 'area', height: 300, toolbar: { show: false }}, xaxis: { categories: sortedMonths }, dataLabels: { enabled: false }, stroke: { curve: 'smooth' } }; const textGenerator = (d) => { if (!d.sortedMonths || d.sortedMonths.length < 2) return '<h3>Wawasan Tren</h3><p>Data tidak cukup untuk analisis tren.</p>'; const firstMonth = d.sortedMonths[0]; const lastMonth = d.sortedMonths[d.sortedMonths.length - 1]; const startValue = d.monthlyData[firstMonth]; const endValue = d.monthlyData[lastMonth]; const change = endValue - startValue; const percentChange = startValue > 0 ? ((change / startValue) * 100).toFixed(1) : 100; const peakMonth = d.sortedMonths.reduce((a, b) => d.monthlyData[a] > d.monthlyData[b] ? a : b); return `<h3>Wawasan Tren Pengajuan</h3><p>Dalam periode yang dipilih, tren pengajuan menunjukkan dinamika yang signifikan. Puncak pengajuan terjadi pada bulan <span class="highlight">${peakMonth}</span> dengan total <span class="highlight">${d.monthlyData[peakMonth]}</span> pengajuan.</p><p>Secara keseluruhan, dari awal hingga akhir periode, terjadi ${change >= 0 ? 'peningkatan' : 'penurunan'} jumlah pengajuan sebesar <span class="highlight">${change > 0 ? `+${change}`: change}</span> (${percentChange > 0 ? `+${percentChange}`: percentChange}%).</p>`; }; renderStorytellingChart('storytellingTrendAnalysisChart', options, textGenerator, {monthlyData, sortedMonths}); }
+    function renderStorytellingCommodityPerformance(period) { const data = filterDataByPeriod(dummySubmissions, period); const commodityData = data.reduce((acc, s) => { if(!acc[s.commodity]) acc[s.commodity] = { total: 0, approved: 0 }; acc[s.commodity].total++; if (s.status === 'Penerbitan' || s.status === 'Persetujuan') acc[s.commodity].approved++; return acc; }, {}); const categories = Object.keys(commodityData); const seriesTotal = categories.map(c => commodityData[c].total); const seriesApproved = categories.map(c => commodityData[c].approved); const options = { series: [{ name: 'Total', data: seriesTotal }, { name: 'Disetujui', data: seriesApproved }], chart: { type: 'bar', height: 300, stacked: true, toolbar: { show: false }}, plotOptions: { bar: { horizontal: true } }, xaxis: { categories: categories }, }; const textGenerator = (d) => { if(Object.keys(d).length === 0) return '<h3>Wawasan Performa</h3><p>Tidak ada data untuk ditampilkan.</p>'; let topCommodity = {name: 'N/A', total: 0}; let highestApprovalRate = {name: 'N/A', rate: -1}; for(const comm in d) { if (d[comm].total > topCommodity.total) topCommodity = {name: comm, ...d[comm]}; const rate = d[comm].total > 0 ? (d[comm].approved / d[comm].total) * 100 : 0; if(rate > highestApprovalRate.rate) highestApprovalRate = {name: comm, rate}; } return `<h3>Wawasan Performa Komoditas</h3><p>Komoditas dengan pengajuan terbanyak adalah <span class="highlight">${topCommodity.name}</span> dengan total <span class="highlight">${topCommodity.total.toLocaleString()}</span> pengajuan.</p><p>Tingkat persetujuan tertinggi diraih oleh komoditas <span class="highlight">${highestApprovalRate.name}</span>, dengan <span class="highlight">${highestApprovalRate.rate.toFixed(1)}%</span> pengajuannya berhasil disetujui. Ini menunjukkan proses verifikasi yang efisien untuk komoditas tersebut.</p>`; }; renderStorytellingChart('storytellingCommodityChart', options, textGenerator, commodityData); }
+    function renderStorytellingEfficiency(period) { const data = filterDataByPeriod(dummySubmissions, period); const avgTime = parseFloat(calculateAvgProcessTime(data)) || 0; const bottleneck = "Pemeriksaan Dokumen"; const options = { series: [avgTime], chart: {type: 'radialBar', height: 300, parentHeightOffset: 0}, plotOptions: { radialBar: { hollow: { size: '65%' }, dataLabels: { name: { show: true, offsetY: -10, formatter: () => "Rata-Rata Proses" }, value: { offsetY: 5, fontSize: '22px', formatter: (val) => `${val.toFixed(1)} Hari` } } } }, stroke: { lineCap: "round" }, labels: ['Rata-Rata Waktu Proses'] }; const textGenerator = () => `<h3>Wawasan Efisiensi Proses</h3><p>Rata-rata waktu yang dibutuhkan untuk menyelesaikan sebuah pengajuan pada periode ini adalah <span class="highlight">${avgTime.toFixed(1)} hari</span>.</p><p>Berdasarkan analisis awal, tahapan yang menjadi *bottleneck* (paling memakan waktu) adalah <span class="highlight">${bottleneck}</span>. Optimalisasi pada tahap ini, misalnya dengan digitalisasi atau penyederhanaan syarat, dapat meningkatkan efisiensi secara signifikan.</p>`; renderStorytellingChart('storytellingEfficiencyChart', options, textGenerator); }
+    function renderStorytellingCompliance() { const complianceData = dummySubmissions.reduce((acc, s) => { if (!acc[s.commodity]) acc[s.commodity] = { total: 0, rejected: 0 }; acc[s.commodity].total++; if(s.status === 'Penolakan') acc[s.commodity].rejected++; return acc; }, {}); const categories = Object.keys(complianceData); const seriesRejected = categories.map(c => complianceData[c].rejected); const seriesTotal = categories.map(c => complianceData[c].total); const options = { series: [{ name: 'Ditolak', data: seriesRejected }, { name: 'Total Pengajuan', data: seriesTotal }], chart: { type: 'bar', height: 300, toolbar: { show: false } }, plotOptions: { bar: { horizontal: false, dataLabels: { position: 'top' } } }, dataLabels: { enabled: true, offsetY: -20, style: { fontSize: '12px', colors: ["#304758"] } }, xaxis: { categories: categories, labels: { rotate: -45, style: { fontSize: '10px' } } }, yaxis: { title: { text: 'Jumlah Pengajuan' } } }; const textGenerator = (d) => { if(Object.keys(d).length === 0) return '<h3>Wawasan Kepatuhan</h3><p>Tidak ada data untuk ditampilkan.</p>'; let highestRejection = { name: 'N/A', rate: -1, count: 0 }; for (const comm in d) { const rate = d[comm].total > 0 ? (d[comm].rejected / d[comm].total) * 100 : 0; if(rate > highestRejection.rate) { highestRejection = { name: comm, rate: rate, count: d[comm].rejected }; } } return `<h3>Wawasan Kepatuhan Eksportir</h3><p>Analisis ini menyoroti tingkat penolakan berdasarkan komoditas untuk mengidentifikasi area yang memerlukan perhatian lebih.</p><p>Komoditas dengan tingkat penolakan tertinggi adalah <span class="highlight">${highestRejection.name}</span>, dimana <span class="highlight">${highestRejection.rate.toFixed(1)}%</span> pengajuannya ditolak. Ini mengindikasikan kemungkinan adanya ketidaksesuaian dokumen atau syarat yang belum terpenuhi secara konsisten oleh eksportir komoditas ini.</p>`; }; renderStorytellingChart('storytellingComplianceChart', options, textGenerator, complianceData); }
+    function renderStorytellingPolicyImpact() { const POLICY_DATE = '2023-01-01'; const TARGET_COMMODITY = 'Minyak Kelapa Sawit'; const monthlyData = dummySubmissions.filter(s => s.commodity === TARGET_COMMODITY).reduce((acc, s) => { const month = s.date.substring(0, 7); acc[month] = (acc[month] || 0) + s.volume; return acc; }, {}); const sortedMonths = Object.keys(monthlyData).sort(); const seriesData = sortedMonths.map(month => monthlyData[month]); const options = { series: [{ name: `Volume Ekspor ${TARGET_COMMODITY} (Ton)`, data: seriesData }], chart: { type: 'line', height: 300, toolbar: { show: false }}, xaxis: { categories: sortedMonths, labels: { rotate: -45, style: { fontSize: '10px' } } }, yaxis: { title: { text: 'Volume (Ton)' }, labels: { formatter: (val) => val.toLocaleString() } }, stroke: { curve: 'smooth' }, annotations: { xaxis: [{ x: POLICY_DATE.substring(0, 7), borderColor: '#EF4444', label: { borderColor: '#EF4444', style: { color: '#fff', background: '#EF4444' }, text: 'Kebijakan Baru', } }] } }; const textGenerator = () => { const beforePolicy = sortedMonths.filter(m => m < POLICY_DATE.substring(0, 7)); const afterPolicy = sortedMonths.filter(m => m >= POLICY_DATE.substring(0, 7)); if (beforePolicy.length === 0 || afterPolicy.length === 0) { return `<h3>Wawasan Dampak Kebijakan</h3><p>Data tidak cukup untuk melakukan analisis dampak kebijakan "sebelum dan sesudah" untuk komoditas <span class="highlight">${TARGET_COMMODITY}</span>.</p>`; } const avgBefore = beforePolicy.reduce((sum, m) => sum + monthlyData[m], 0) / beforePolicy.length; const avgAfter = afterPolicy.reduce((sum, m) => sum + monthlyData[m], 0) / afterPolicy.length; const change = avgAfter - avgBefore; const percentChange = avgBefore > 0 ? (change / avgBefore * 100).toFixed(1) : (avgAfter > 0 ? 100 : 0); return `<h3>Wawasan Dampak Kebijakan</h3><p>Simulasi ini mengukur dampak kebijakan baru yang diimplementasikan pada <span class="highlight">${POLICY_DATE}</span> terhadap volume ekspor <span class="highlight">${TARGET_COMMODITY}</span>.</p><p>Rata-rata volume ekspor bulanan ${percentChange >= 0 ? 'meningkat' : 'menurun'} dari ${avgBefore.toFixed(0).toLocaleString()} Ton menjadi ${avgAfter.toFixed(0).toLocaleString()} Ton setelah kebijakan. Ini menunjukkan ${percentChange >= 0 ? 'kenaikan' : 'penurunan'} sebesar <span class="highlight">${percentChange > 0 ? '+':''}${percentChange}%</span>.</p>`; }; renderStorytellingChart('storytellingPolicyChart', options, {}, textGenerator); }
+    function renderPerformanceComparison(type) { let options; let insightText = ''; const data = dummySubmissions; if(type === 'komoditas'){ const counts = data.reduce((acc, s) => { acc[s.commodity] = (acc[s.commodity] || 0) + 1; return acc; }, {}); const sorted = Object.entries(counts).sort(([,a],[,b]) => b-a).slice(0, 10); options = { chart: { type: 'bar', height: 350, parentHeightOffset: 0 }, series: [{ data: sorted.map(s => s[1]) }], xaxis: { categories: sorted.map(s => s[0]) }, yaxis: { title: { text: 'Jumlah Pengajuan' } } }; insightText = `Komoditas <span class="highlight">${sorted[0][0]}</span> menjadi yang paling banyak diajukan, menunjukkan perannya sebagai tulang punggung ekspor.`; } else if (type === 'negara') { const counts = data.reduce((acc, s) => { acc[s.country] = (acc[s.country] || 0) + 1; return acc; }, {}); const sorted = Object.entries(counts).sort(([,a],[,b]) => b-a).slice(0, 10); options = { chart: { type: 'bar', height: 350, parentHeightOffset: 0 }, series: [{ name: 'Total Pengajuan', data: sorted.map(s => s[1]) }], xaxis: { categories: sorted.map(s => s[0]) }, colors: ['#3B82F6'] }; insightText = `Negara <span class="highlight">${sorted[0][0]}</span> menjadi tujuan ekspor teratas, menandakan hubungan dagang yang kuat.`; } else if (type === 'bulan') { const counts = Array(12).fill(0); data.forEach(s => { counts[new Date(s.date).getMonth()]++; }); const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Ags', 'Sep', 'Okt', 'Nov', 'Des']; const peakMonthIndex = counts.indexOf(Math.max(...counts)); options = { chart: { type: 'line', height: 350, parentHeightOffset: 0 }, series: [{ name: 'Total Pengajuan', data: counts }], xaxis: { categories: months }, stroke: { curve: 'smooth' }, colors: ['#10B981'] }; insightText = `Puncak pengajuan terjadi pada bulan <span class="highlight">${months[peakMonthIndex]}</span>. Ini bisa jadi menandakan adanya tren musiman dalam aktivitas ekspor.`; } const chartEl = document.getElementById('performanceComparisonChart'); chartEl.innerHTML = ''; if (performanceComparisonApexChart) performanceComparisonApexChart.destroy(); performanceComparisonApexChart = new ApexCharts(chartEl, options); performanceComparisonApexChart.render(); document.getElementById('comparisonInsights').innerHTML = insightText; }
+    function populateGeographicFilter() { const select = document.getElementById('geographic-country-filter'); if (select.options.length > 0) return; const countries = [...new Set(dummySubmissions.map(s => s.country))].sort(); select.innerHTML = countries.map(c => `<option value="${c}">${c}</option>`).join(''); }
+    function renderGeographicAnalysis(country) { const countryData = dummySubmissions.filter(s => s.country === country); const commodityVolumes = countryData.reduce((acc, s) => { acc[s.commodity] = (acc[s.commodity] || 0) + s.volume; return acc; }, {}); const sortedCommodities = Object.entries(commodityVolumes).sort(([,a],[,b]) => b-a); const options = { series: [{ name: 'Volume (Ton)', data: sortedCommodities.map(item => item[1]) }], chart: { type: 'bar', height: 300, toolbar: { show: false } }, xaxis: { categories: sortedCommodities.map(item => item[0]), labels: { rotate: -45, style: { fontSize: '10px' } } }, yaxis: { title: { text: 'Total Volume (Ton)' } }, colors: ['#F59E0B'] }; const textGenerator = (d) => { if (d.sorted.length === 0) { return `<h3>Wawasan Pasar ${country}</h3><p>Tidak ada data ekspor yang tercatat untuk negara ${country}.</p>`; } const topCommodity = d.sorted[0]; const totalVolume = d.sorted.reduce((sum, item) => sum + item[1], 0); const topPercentage = totalVolume > 0 ? (topCommodity[1] / totalVolume * 100).toFixed(1) : 0; return `<h3>Wawasan Pasar ${country}</h3><p>Analisis mendalam untuk pasar <span class="highlight">${country}</span> menunjukkan preferensi yang kuat terhadap komoditas tertentu.</p><p>Komoditas primadona yang diekspor ke negara ini adalah <span class="highlight">${topCommodity[0]}</span>, dengan total volume mencapai <span class="highlight">${topCommodity[1].toLocaleString()} Ton</span>. Komoditas ini menyumbang <span class="highlight">${topPercentage}%</span> dari total volume ekspor ke ${country}, menjadikannya produk kunci dalam hubungan dagang bilateral.</p>`; }; renderStorytellingChart('geographicAnalysisChart', options, textGenerator, { sorted: sortedCommodities }); }
+    
+    // MODAL & NOTIFICATION FUNCTIONS
+    function showSubmissionDetail(submissionId) { const s = dummySubmissions.find(sub => sub.id === submissionId); if (!s) return; document.getElementById('detailSubmissionId').textContent = `ID: ${s.id}`; document.getElementById('detailCompany').textContent = s.company; document.getElementById('detailCommodity').textContent = s.commodity; document.getElementById('detailCountry').textContent = s.country; document.getElementById('detailDate').textContent = s.date; document.getElementById('detailVolume').textContent = (s.volume || 0).toLocaleString(); document.getElementById('detailValue').textContent = `$${(s.value || 0).toLocaleString()}`; const statusBadge = document.getElementById('detailStatus'); statusBadge.textContent = s.status; statusBadge.className = `detail-modal-status-badge status-badge ${s.status.toLowerCase().replace(/\s/g, '')}`; document.getElementById('submissionDetailModal').style.display = 'flex'; }
+    function renderAllSubmissions(submissions) { const tableBody = document.querySelector('#allSubmissionsTable tbody'); tableBody.innerHTML = ''; submissions.forEach(s => { tableBody.innerHTML += `<tr><td>${s.id}</td><td>${s.company}</td><td>${s.commodity}</td><td>${s.country}</td><td>${s.date}</td><td><span class="status-badge ${s.status.toLowerCase().replace(/\s/g, '')}">${s.status}</span></td><td><button class="btn" style="padding: 0.4rem 0.8rem;" onclick="showSubmissionDetail('${s.id}'); document.getElementById('allSubmissionsModal').style.display = 'none';">Detail</button></td></tr>`; }); }
+    function renderNotifications() { const container = document.querySelector('.notifications-content'); container.innerHTML = ''; dummyNotifications.forEach(n => { container.innerHTML += `<div class="notification-item"><div class="notification-company"><span>${n.company}</span><span class="notification-time">${n.time}</span></div><div class="notification-message">${n.message}</div></div>`; }); }
+    
+    // UTILITY FUNCTIONS
+    function calculateAvgProcessTime(submissions) { const completedSubmissions = submissions.filter(s => s.status === 'Penerbitan' || s.status === 'Penolakan'); if (completedSubmissions.length === 0) { return 'N/A'; } const totalDays = completedSubmissions.reduce((acc) => acc + (Math.random() * 12 + 3), 0); const avgDays = totalDays / completedSubmissions.length; return `${avgDays.toFixed(1)} Hari`; }
+    function filterDataByPeriod(data, period) { const now = new Date(); const today = new Date(now.setHours(0, 0, 0, 0)); switch (period) { case '1-tahun-terakhir': const lastYear = new Date(new Date().setFullYear(today.getFullYear() - 1)); return data.filter(s => new Date(s.date) >= lastYear); case '3-tahun-terakhir': const threeYearsAgo = new Date(new Date().setFullYear(today.getFullYear() - 3)); return data.filter(s => new Date(s.date) >= threeYearsAgo); case 'tahun-ini': return data.filter(s => new Date(s.date).getFullYear() === today.getFullYear()); case 'tahun-lalu': return data.filter(s => new Date(s.date).getFullYear() === today.getFullYear() - 1); case '6-bulan-terakhir': const last6Months = new Date(new Date().setMonth(today.getMonth() - 6)); return data.filter(s => new Date(s.date) >= last6Months); case 'semua-data': default: return data; } }
+    function getCountryCode(countryName) { const codes = { 'Thailand': 'th', 'Jepang': 'jp', 'Korea Selatan': 'kr', 'China': 'cn', 'Indonesia': 'id', 'Singapura': 'sg', 'Malaysia': 'my', 'Vietnam': 'vn', 'Filipina': 'ph', 'Australia': 'au', 'India': 'in', 'Amerika Serikat': 'us', 'Jerman': 'de', 'Inggris': 'gb' }; return codes[countryName] || 'un'; }
+    function exportTableToCSV(tableId) { const table = document.getElementById(tableId); let csv = []; for (const row of table.rows) { const rowData = []; for (const cell of row.cells) { if (cell.style.display !== 'none' && !cell.querySelector('button')) { rowData.push(`"${cell.textContent.replace(/"/g, '""')}"`); } } csv.push(rowData.join(',')); } const blob = new Blob([csv.join('\n')], { type: 'text/csv' }); const url = window.URL.createObjectURL(blob); const a = document.createElement('a'); a.setAttribute('hidden', ''); a.setAttribute('href', url); a.setAttribute('download', 'pengajuan_terbaru.csv'); document.body.appendChild(a); a.click(); document.body.removeChild(a); }
+    function logout(){ alert('Fungsi logout disimulasikan.'); }
+</script>
+
+</body>
+</html>
