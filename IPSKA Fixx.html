@@ -1,0 +1,1147 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Operasional IPSKA - Kementerian Perdagangan</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Font Awesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Chart.js for standard charts -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    
+    <!-- D3.js for Bar Chart Race -->
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+
+    <style>
+        /* Base Styling */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6; /* Light gray background */
+        }
+
+        /* Card Styling */
+        .card {
+            background-color: #ffffff;
+            border-radius: 0.75rem; /* More rounded corners */
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            transition: box-shadow 0.3s ease-in-out;
+        }
+        .card:hover {
+            box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+        }
+
+        /* Tab Navigation Styling */
+        .tab-btn {
+            transition: all 0.3s ease;
+            border-bottom: 3px solid transparent;
+        }
+        .tab-btn.active {
+            border-color: #2563eb; /* Blue accent for active tab */
+            color: #2563eb;
+            background-color: #eff6ff;
+        }
+        .tab-btn:hover:not(.active) {
+            background-color: #f9fafb;
+            color: #1f2937;
+        }
+
+        /* Tab Content Animation */
+        .tab-content { display: none; }
+        .tab-content.active {
+            display: block;
+            animation: fadeIn 0.5s ease-in-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Custom Timeline for Audit Trail */
+        .timeline { position: relative; padding-left: 2.5rem; }
+        .timeline::before {
+            content: '';
+            position: absolute;
+            left: 0.75rem;
+            top: 0;
+            height: 100%;
+            width: 4px;
+            background: #d1d5db;
+            border-radius: 2px;
+        }
+        .timeline-item { position: relative; margin-bottom: 1.5rem; }
+        .timeline-dot {
+            position: absolute;
+            left: -2.5rem;
+            top: 0.25rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 2rem;
+            height: 2rem;
+            border-radius: 50%;
+            border: 4px solid #f3f4f6;
+        }
+        .timeline-dot-approved { background-color: #22c55e; color: white; }
+        .timeline-dot-pending { background-color: #f59e0b; color: white; }
+        .timeline-dot-rejected { background-color: #ef4444; color: white; }
+        .timeline-dot-info { background-color: #3b82f6; color: white; }
+
+        /* Tooltip for better UX */
+        [data-tooltip] { position: relative; }
+        [data-tooltip]:hover::after {
+            content: attr(data-tooltip);
+            position: absolute;
+            bottom: 110%;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: #1f2937;
+            color: white;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 0.875rem;
+            white-space: nowrap;
+            z-index: 50;
+            opacity: 0;
+            transition: opacity 0.2s;
+            pointer-events: none;
+        }
+        [data-tooltip]:hover::after {
+            opacity: 1;
+        }
+        
+        /* Modal Styling */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 40;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s, visibility 0.3s;
+        }
+        .modal-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+        .modal-content {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 0.75rem;
+            width: 90%;
+            max-width: 800px;
+            max-height: 90vh;
+            overflow-y: auto;
+            transform: scale(0.95);
+            transition: transform 0.3s;
+        }
+        .modal-overlay.active .modal-content {
+            transform: scale(1);
+        }
+        
+        /* Bar Chart Race Styling */
+        #barChartRace text {
+            font-size: 14px;
+            fill: #333;
+        }
+        #barChartRace .label {
+            text-anchor: end;
+            font-weight: bold;
+            fill: white;
+        }
+        #barChartRace .value-label {
+            text-anchor: start;
+            font-weight: bold;
+            fill: #555;
+        }
+        #barChartRace .tick text {
+            font-size: 12px;
+            fill: #777;
+        }
+        #barChartRace .axis-title {
+            font-size: 14px;
+            font-weight: bold;
+            fill: #333;
+        }
+        #barChartRace .ticker {
+            font-size: 3rem;
+            font-weight: bold;
+            text-anchor: end;
+            fill: #ccc;
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+
+    <div class="container mx-auto p-4 sm:p-6 lg:p-8">
+        <!-- Header -->
+        <header class="mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center">
+            <div>
+                <h1 class="text-3xl font-bold text-gray-800">Dashboard Operasional IPSKA</h1>
+                <p class="text-gray-600 mt-1">Sistem Verifikasi dan Analisis Surat Keterangan Asal (SKA)</p>
+            </div>
+            <div class="flex items-center gap-4 text-sm text-gray-500 mt-2 sm:mt-0">
+                <div class="relative">
+                    <button id="notificationBtn" class="relative">
+                        <i class="fas fa-bell text-xl"></i>
+                        <span id="notification-dot" class="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-white"></span>
+                    </button>
+                    <div id="notificationDropdown" class="hidden absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-xl z-20">
+                        <div class="p-4 font-bold border-b">Notifikasi</div>
+                        <div id="notificationList" class="max-h-80 overflow-y-auto"></div>
+                    </div>
+                </div>
+                <div><i class="fas fa-user-circle mr-2"></i>Petugas: Budi Santoso</div>
+            </div>
+        </header>
+
+        <!-- Tab Navigation -->
+        <nav class="card p-2 rounded-lg mb-6">
+            <div class="flex flex-wrap items-center text-sm font-medium text-gray-600">
+                <button class="tab-btn active flex-grow sm:flex-grow-0 px-4 py-2 rounded-md" data-tab="summary"><i class="fas fa-chart-pie mr-2"></i>Ringkasan</button>
+                <button class="tab-btn flex-grow sm:flex-grow-0 px-4 py-2 rounded-md" data-tab="table"><i class="fas fa-table mr-2"></i>Daftar Pengajuan</button>
+                <button class="tab-btn flex-grow sm:flex-grow-0 px-4 py-2 rounded-md" data-tab="validation"><i class="fas fa-check-double mr-2"></i>Validasi</button>
+                <button class="tab-btn flex-grow sm:flex-grow-0 px-4 py-2 rounded-md" data-tab="performance"><i class="fas fa-user-check mr-2"></i>Kinerja</button>
+                <button class="tab-btn flex-grow sm:flex-grow-0 px-4 py-2 rounded-md" data-tab="analysis"><i class="fas fa-chart-line mr-2"></i>Analisis Ekspor</button>
+                <button class="tab-btn flex-grow sm:flex-grow-0 px-4 py-2 rounded-md relative" data-tab="communication">
+                    <i class="fas fa-comments mr-2"></i>Komunikasi
+                    <span id="chat-notification" class="hidden absolute top-1 right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-white"></span>
+                </button>
+                <button class="tab-btn flex-grow sm:flex-grow-0 px-4 py-2 rounded-md" data-tab="audit"><i class="fas fa-history mr-2"></i>Audit & Simulasi</button>
+            </div>
+        </nav>
+
+        <main>
+            <!-- TAB 1: RINGKASAN PENGAJUAN -->
+            <div id="summary-tab" class="tab-content active">
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <div class="card p-6"><h3 class="text-gray-500 font-medium">Total Pengajuan</h3><p id="kpiTotal" class="text-3xl font-bold mt-2 text-blue-600">0</p></div>
+                    <div class="card p-6"><h3 class="text-gray-500 font-medium">Disetujui</h3><p id="kpiValidated" class="text-3xl font-bold mt-2 text-green-600">0</p></div>
+                    <div class="card p-6"><h3 class="text-gray-500 font-medium">Ditolak</h3><p id="kpiRejected" class="text-3xl font-bold mt-2 text-red-600">0</p></div>
+                    <div class="card p-6"><h3 class="text-gray-500 font-medium">Dalam Pemeriksaan</h3><p id="kpiProcessing" class="text-3xl font-bold mt-2 text-yellow-500">0</p></div>
+                </div>
+                <div class="card p-6 mt-6">
+                    <h3 class="font-bold text-lg mb-4">Tinjauan Status Visual</h3>
+                    <div id="status-overview" class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-2 text-center"></div>
+                </div>
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
+                    <div class="lg:col-span-2 card p-6"><h3 class="font-bold text-lg mb-4">Top 5 Komoditas Diajukan</h3><canvas id="topCommoditiesChart"></canvas></div>
+                    <div class="card p-6"><h3 class="font-bold text-lg mb-4">Top 5 Negara Tujuan</h3><canvas id="topCountriesChart"></canvas></div>
+                </div>
+                <div class="card p-6 mt-6">
+                    <h3 class="font-bold text-lg mb-4">Perlombaan Volume Ekspor per Komoditas (Jan - Jul 2024)</h3>
+                    <div id="barChartRace" class="w-full h-[500px] relative overflow-hidden"></div>
+                    <div id="storytelling-summary" class="mt-4 p-4 bg-blue-50 border-l-4 border-blue-500 text-blue-800 rounded-r-lg">
+                        <p><i class="fas fa-lightbulb mr-2"></i><strong>Insight:</strong> <span id="summaryInsightText">Menganalisis data...</span></p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 2: DAFTAR PENGAJUAN -->
+            <div id="table-tab" class="tab-content">
+                <div class="card p-6">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
+                        <select id="filterCommodity" class="w-full p-2 border border-gray-300 rounded-md"></select>
+                        <select id="filterCountry" class="w-full p-2 border border-gray-300 rounded-md"></select>
+                        <select id="filterHsCode" class="w-full p-2 border border-gray-300 rounded-md"></select>
+                        <select id="filterSkaType" class="w-full p-2 border border-gray-300 rounded-md"></select>
+                        <select id="filterFormSka" class="w-full p-2 border border-gray-300 rounded-md"></select>
+                        <select id="filterStatus" class="w-full p-2 border border-gray-300 rounded-md"></select>
+                    </div>
+                     <div class="flex justify-end mb-4">
+                        <button id="exportCsvBtn" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center justify-center"><i class="fas fa-file-csv mr-2"></i>Ekspor CSV</button>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full bg-white">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">No</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nama Usaha</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Komoditas</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Kode HS</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody id="submissionTableBody" class="divide-y divide-gray-200"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 3: VALIDASI DOKUMEN -->
+            <div id="validation-tab" class="tab-content">
+                 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <div class="lg:col-span-2 space-y-6">
+                        <div class="card p-6">
+                            <h3 class="font-bold text-lg mb-4"><i class="fas fa-file-alt mr-2"></i>Validasi Pengajuan: <span id="validationSkaId" class="font-mono bg-gray-100 p-1 rounded">Pilih dari tabel</span></h3>
+                            <div id="validation-alert" class="hidden p-4 mb-4 text-sm text-red-800 rounded-lg bg-red-50" role="alert">
+                                <i class="fas fa-exclamation-triangle mr-2"></i><span class="font-medium">Peringatan!</span> <span id="validation-alert-text"></span>
+                            </div>
+                        </div>
+                        <div class="card p-6">
+                            <h3 class="font-bold text-lg mb-4"><i class="fas fa-tasks mr-2"></i>Checklist Verifikasi Dokumen</h3>
+                            <form id="validationChecklistForm" class="space-y-4">
+                                <p class="text-gray-500">Pilih pengajuan untuk memulai validasi.</p>
+                            </form>
+                        </div>
+                    </div>
+                    <div class="lg:col-span-1">
+                        <div class="card p-6 sticky top-6">
+                            <h3 class="font-bold text-lg mb-4"><i class="fas fa-gavel mr-2"></i>Tindakan Final</h3>
+                            <div id="validationActions" class="space-y-3">
+                                <button type="button" data-action="Setujui" class="validation-action-btn w-full px-4 py-3 bg-green-600 text-white font-bold rounded-lg hover:bg-green-700 disabled:opacity-50" disabled><i class="fas fa-check-circle mr-2"></i>Setujui</button>
+                                <button type="button" data-action="Revisi" class="validation-action-btn w-full px-4 py-3 bg-yellow-500 text-white font-bold rounded-lg hover:bg-yellow-600 disabled:opacity-50" disabled><i class="fas fa-edit mr-2"></i>Minta Revisi</button>
+                                <button type="button" data-action="Hubungi" class="validation-action-btn w-full px-4 py-3 bg-blue-500 text-white font-bold rounded-lg hover:bg-blue-600 disabled:opacity-50" disabled><i class="fas fa-phone-alt mr-2"></i>Hubungi Eksportir</button>
+                                <button type="button" data-action="Tolak" class="validation-action-btn w-full px-4 py-3 bg-red-600 text-white font-bold rounded-lg hover:bg-red-700 disabled:opacity-50" disabled><i class="fas fa-times-circle mr-2"></i>Tolak</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 4: KINERJA PETUGAS -->
+            <div id="performance-tab" class="tab-content">
+                 <div class="card p-6">
+                    <h3 class="font-bold text-lg mb-4">Kinerja Petugas Verifikasi</h3>
+                    <div class="overflow-x-auto mb-6">
+                        <table class="min-w-full bg-white">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nama Petugas</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Jumlah Diverifikasi</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Kesalahan Ditemukan</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tingkat Akurasi</th>
+                                </tr>
+                            </thead>
+                            <tbody id="officerPerformanceTable" class="divide-y divide-gray-200"></tbody>
+                        </table>
+                    </div>
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div>
+                            <h4 class="font-bold text-md mb-2">Visualisasi Performa</h4>
+                            <canvas id="officerPerformanceChart"></canvas>
+                        </div>
+                        <div id="storytelling-performance" class="p-4 bg-blue-50 border-l-4 border-blue-500 text-blue-800 rounded-r-lg self-center">
+                            <p><i class="fas fa-lightbulb mr-2"></i><strong>Interpretasi:</strong> <span id="performanceInsightText">Memuat data...</span></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 5: ANALISIS EKSPOR -->
+            <div id="analysis-tab" class="tab-content">
+                <div class="card p-6">
+                    <h3 class="font-bold text-lg mb-4">Analisis Tren Pengajuan SKA</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                        <div>
+                            <label class="text-sm font-medium">Dimensi Analisis</label>
+                            <select id="analysisDimension" class="w-full p-2 border border-gray-300 rounded-md">
+                                <option value="volume">Volume Pengajuan per Bulan</option>
+                                <option value="country">Komoditas per Negara</option>
+                            </select>
+                        </div>
+                         <div>
+                            <label class="text-sm font-medium">Filter Negara (untuk 'Komoditas per Negara')</label>
+                            <select id="analysisCountryFilter" class="w-full p-2 border border-gray-300 rounded-md" disabled></select>
+                        </div>
+                    </div>
+                    <canvas id="exportTrendChart"></canvas>
+                    <div id="storytelling-analysis" class="mt-4 p-4 bg-blue-50 border-l-4 border-blue-500 text-blue-800 rounded-r-lg">
+                        <p><i class="fas fa-lightbulb mr-2"></i><strong>Insight:</strong> <span id="analysisInsightText"></span></p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 6: KOMUNIKASI -->
+            <div id="communication-tab" class="tab-content">
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <div class="lg:col-span-1 card overflow-hidden">
+                        <div class="p-4 font-bold border-b bg-gray-50">Pesan Masuk</div>
+                        <div id="chatList" class="divide-y max-h-[500px] overflow-y-auto"></div>
+                    </div>
+                    <div class="lg:col-span-2 card flex flex-col h-[550px]">
+                        <div class="p-4 font-bold border-b bg-gray-50">Diskusi: <span id="chatSkaId" class="font-mono">Pilih Percakapan</span></div>
+                        <div id="chatMessages" class="flex-grow p-4 space-y-4 overflow-y-auto bg-gray-50">
+                           <p class="text-center text-gray-500 mt-10">Pilih percakapan dari daftar di sebelah kiri.</p>
+                        </div>
+                        <div class="p-4 bg-white border-t">
+                            <div id="cannedReplies" class="flex flex-wrap gap-2 mb-2"></div>
+                            <div class="flex items-center">
+                                <input type="text" id="chatInput" class="flex-grow w-full px-3 py-2 border border-gray-300 rounded-lg" placeholder="Ketik balasan..." disabled>
+                                <button id="chatSendBtn" class="ml-3 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50" disabled><i class="fas fa-paper-plane"></i></button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 7: AUDIT & SIMULASI -->
+            <div id="audit-tab" class="tab-content">
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div class="space-y-6">
+                        <div class="card p-6">
+                             <h3 class="font-bold text-lg mb-4">Timeline Progres Pengajuan</h3>
+                            <select id="timelineSubmissionSelect" class="w-full p-2 border border-gray-300 rounded-md mb-4"></select>
+                            <div id="auditTimeline" class="timeline"></div>
+                        </div>
+                        <div class="card p-6">
+                            <h3 class="font-bold text-lg mb-4">Jejak Audit</h3>
+                            <div class="overflow-y-auto h-96">
+                                <table class="min-w-full bg-white">
+                                    <thead class="bg-gray-50 sticky top-0">
+                                        <tr>
+                                            <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Waktu</th>
+                                            <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Aksi</th>
+                                            <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Petugas</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="auditLogBody" class="divide-y divide-gray-200"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card p-6">
+                        <h3 class="font-bold text-lg mb-4">Simulasi Kebijakan IPSKA</h3>
+                        <div class="space-y-4">
+                            <div>
+                                <label for="simSurge" class="font-medium">Jika Volume Ekspor Naik</label>
+                                <div class="flex items-center gap-4">
+                                    <input type="range" id="simSurge" min="0" max="100" value="25" class="w-full">
+                                    <span id="simSurgeValue" class="font-bold text-blue-600 w-12 text-center">25%</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mt-6">
+                            <h4 class="font-bold text-md mb-2">Prediksi Dampak</h4>
+                            <canvas id="simulationImpactChart"></canvas>
+                            <div id="storytelling-simulation" class="mt-4 p-4 bg-yellow-50 border-l-4 border-yellow-500 text-yellow-800 rounded-r-lg">
+                                <p><i class="fas fa-exclamation-triangle mr-2"></i><strong>Prediksi:</strong> <span id="simulationInsightText"></span></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+    
+    <!-- Modals -->
+    <div id="submission-modal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="flex justify-between items-center mb-4 border-b pb-4">
+                <h2 class="text-xl font-bold">Detail Pengajuan: <span id="modal-ska-id" class="font-mono"></span></h2>
+                <button id="close-modal-btn" class="text-gray-500 hover:text-gray-800 text-2xl">&times;</button>
+            </div>
+            <div id="modal-body"></div>
+        </div>
+    </div>
+    
+    <div id="action-confirm-modal" class="modal-overlay">
+        <div class="modal-content max-w-sm">
+             <h2 id="confirm-modal-title" class="text-xl font-bold text-center mb-4">Konfirmasi Tindakan</h2>
+             <p id="confirm-modal-text" class="text-center mb-6">Apakah Anda yakin?</p>
+             <div class="flex justify-center gap-4">
+                <button id="confirm-modal-yes" class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Ya, Lanjutkan</button>
+                <button id="confirm-modal-no" class="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300">Batal</button>
+             </div>
+        </div>
+    </div>
+
+
+    <script>
+    document.addEventListener('DOMContentLoaded', function () {
+        // --- MOCK DATA ---
+        let auditLogs = [];
+        const SKA_DATA = {
+            types: {
+                'Preferensi': ['Form D', 'Form AK', 'Form AANZ', 'Form IJEPA', 'Form AJCEP'],
+                'Non-Preferensi': ['Form B', 'Form ICO', 'Form TP'],
+                'e-SKA': ['e-Form D', 'e-Form E']
+            },
+            statuses: ['Permohonan', 'Pemeriksaan', 'Persetujuan', 'Penerimaan', 'Penerbitan', 'Penolakan', 'Pengunggahan'],
+            commodities: ['Kopi', 'CPO', 'Tekstil', 'Nikel', 'Kakao', 'Karet', 'Udang', 'Alas Kaki'],
+            countries: ['Thailand', 'Jerman', 'India', 'USA', 'Tiongkok', 'Belanda', 'Jepang', 'Malaysia', 'Mesir'],
+            officers: ['Citra Lestari', 'Ahmad Subagja', 'Budi Santoso'],
+            hsCodes: {
+                'Kopi': '0901.11', 'CPO': '1511.10', 'Tekstil': '6203.42', 'Nikel': '7502.10',
+                'Kakao': '1801.00', 'Karet': '4001.22', 'Udang': '0306.17', 'Alas Kaki': '6403.99'
+            }
+        };
+
+        let submissions = Array.from({ length: 150 }, (_, i) => {
+            const type = Object.keys(SKA_DATA.types)[i % 3];
+            const forms = SKA_DATA.types[type];
+            const commodity = SKA_DATA.commodities[i % SKA_DATA.commodities.length];
+            const hasMismatch = Math.random() < 0.15;
+            const statusIndex = i % SKA_DATA.statuses.length;
+            const status = SKA_DATA.statuses[statusIndex];
+            const officer = SKA_DATA.officers[i % SKA_DATA.officers.length];
+            
+            let auditTrail = [{ time: `2024-07-${String(i%28+1).padStart(2,'0')} 09:00`, action: 'Permohonan Diterima', officer: 'Sistem' }];
+            if (statusIndex > 0) auditTrail.push({ time: `2024-07-${String(i%28+1).padStart(2,'0')} 14:30`, action: 'Pemeriksaan Dimulai', officer: officer });
+            if (statusIndex > 1) auditTrail.push({ time: `2024-07-${String(i%28+2).padStart(2,'0')} 11:00`, action: status, officer: officer });
+
+            return {
+                no: i + 1,
+                id: `SKA-${String(2024001 + i).padStart(7, '0')}`,
+                businessName: `PT Ekspor Jaya ${i + 1}`,
+                commodity: commodity,
+                hsCode: SKA_DATA.hsCodes[commodity],
+                country: SKA_DATA.countries[i % SKA_DATA.countries.length],
+                skaType: type,
+                formSka: forms[i % forms.length],
+                status: status,
+                date: `2024-07-${String(i % 28 + 1).padStart(2,'0')}`,
+                value: 10000 + Math.random() * 90000,
+                hasMismatch: hasMismatch,
+                mismatchDetail: hasMismatch ? 'Nilai invoice tidak sesuai dengan data PEB.' : '',
+                docs: {
+                    Invoice: { present: Math.random() > 0.1, note: '' },
+                    PEB: { present: Math.random() > 0.05, note: '' },
+                    'Certificate of Origin': { present: Math.random() > 0.15, note: '' },
+                    'Packing List': { present: Math.random() > 0.2, note: '' },
+                },
+                audit: auditTrail,
+                officer: officer
+            };
+        });
+        
+        // Moved chatData to global scope to fix ReferenceError
+        const chatData = [
+            { id: submissions[2].id, business: submissions[2].businessName, unread: 1, lastMessage: 'Mohon info statusnya, Pak/Bu.', messages: [{ from: 'exporter', text: 'Mohon info statusnya, Pak/Bu.' }] },
+            { id: submissions[1].id, business: submissions[1].businessName, unread: 0, lastMessage: 'Baik, akan kami perbaiki.', messages: [{ from: 'officer', text: 'Ada kesalahan data pada PEB.' }, {from: 'exporter', text: 'Baik, akan kami perbaiki.'}] },
+        ];
+
+        // --- GLOBAL VARIABLES ---
+        const chartInstances = {};
+
+        // --- UTILITY FUNCTIONS ---
+        const renderChart = (ctxId, config) => {
+            if (chartInstances[ctxId]) chartInstances[ctxId].destroy();
+            const ctx = document.getElementById(ctxId);
+            if (ctx) chartInstances[ctxId] = new Chart(ctx, config);
+        };
+
+        const getStatusInfo = (status, isBadge = true) => {
+            const statusMap = {
+                'Penerbitan': { text: 'Diterbitkan', icon: 'fa-check-circle', color: 'green' },
+                'Persetujuan': { text: 'Disetujui', icon: 'fa-check', color: 'blue' },
+                'Penolakan': { text: 'Ditolak', icon: 'fa-times-circle', color: 'red' },
+                'Pemeriksaan': { text: 'Diperiksa', icon: 'fa-search', color: 'yellow' },
+                'Permohonan': { text: 'Permohonan', icon: 'fa-file-alt', color: 'gray' },
+                'Pengunggahan': { text: 'Diunggah', icon: 'fa-upload', color: 'purple' },
+                'Penerimaan': { text: 'Diterima', icon: 'fa-inbox', color: 'indigo' }
+            };
+            const info = statusMap[status] || { text: 'N/A', icon: 'fa-question-circle', color: 'gray' };
+            if(isBadge) {
+                return `<span class="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-${info.color}-100 text-${info.color}-800"><i class="fas ${info.icon} mr-2"></i>${info.text}</span>`;
+            }
+            return info;
+        };
+        
+        const populateDropdown = (elementId, options, placeholder) => {
+            const select = document.getElementById(elementId);
+            if(select) select.innerHTML = `<option value="">${placeholder}</option>` + [...new Set(options)].map(o => `<option value="${o}">${o}</option>`).join('');
+        };
+
+        // --- TAB SWITCHING LOGIC ---
+        const tabs = document.querySelectorAll('.tab-btn');
+        const tabContents = document.querySelectorAll('.tab-content');
+        tabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                const tabName = tab.dataset.tab;
+                tabs.forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                
+                tabContents.forEach(c => c.classList.remove('active'));
+                const targetContent = document.getElementById(tabName + '-tab');
+                if (targetContent) {
+                    targetContent.classList.add('active');
+                    // Lazy load components
+                    if (tabName === 'performance' && !chartInstances.officerPerformanceChart) initPerformanceTab();
+                    if (tabName === 'analysis' && !chartInstances.exportTrendChart) initAnalysisTab();
+                    if (tabName === 'audit' && !chartInstances.simulationImpactChart) initAuditTab();
+                    if (tabName === 'summary' && !document.querySelector('#barChartRace svg')) initBarChartRace();
+                }
+            });
+        });
+
+        // --- HEADER NOTIFICATIONS ---
+        function initNotifications() {
+            const notificationBtn = document.getElementById('notificationBtn');
+            const notificationDropdown = document.getElementById('notificationDropdown');
+            const notificationList = document.getElementById('notificationList');
+            const unreadChats = chatData.filter(c => c.unread > 0);
+            
+            if (unreadChats.length === 0) {
+                document.getElementById('notification-dot').classList.add('hidden');
+                notificationList.innerHTML = '<p class="p-4 text-gray-500">Tidak ada notifikasi baru.</p>';
+            } else {
+                 notificationList.innerHTML = unreadChats.map(chat => `
+                    <div class="p-3 border-b hover:bg-gray-100 cursor-pointer">
+                        <p class="font-semibold text-sm">Pesan baru di ${chat.id}</p>
+                        <p class="text-xs text-gray-600">${chat.lastMessage}</p>
+                    </div>
+                 `).join('');
+            }
+
+            notificationBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                notificationDropdown.classList.toggle('hidden');
+            });
+            document.addEventListener('click', () => notificationDropdown.classList.add('hidden'));
+        }
+
+        // --- TAB 1: RINGKASAN PENGAJUAN ---
+        function initSummaryTab() {
+            const validated = submissions.filter(s => s.status === 'Penerbitan' || s.status === 'Persetujuan').length;
+            const rejected = submissions.filter(s => s.status === 'Penolakan').length;
+            const processing = submissions.filter(s => s.status === 'Pemeriksaan').length;
+            document.getElementById('kpiTotal').textContent = submissions.length;
+            document.getElementById('kpiValidated').textContent = validated;
+            document.getElementById('kpiRejected').textContent = rejected;
+            document.getElementById('kpiProcessing').textContent = processing;
+
+            const statusCounts = submissions.reduce((acc, s) => { acc[s.status] = (acc[s.status] || 0) + 1; return acc; }, {});
+            document.getElementById('status-overview').innerHTML = SKA_DATA.statuses.map(status => {
+                const info = getStatusInfo(status, false);
+                const count = statusCounts[status] || 0;
+                return `
+                    <div class="p-2 rounded-lg border border-${info.color}-200 bg-${info.color}-50">
+                        <p class="font-bold text-xl text-${info.color}-700">${count}</p>
+                        <p class="text-xs text-${info.color}-600">${info.text}</p>
+                    </div>
+                `;
+            }).join('');
+
+            const countData = (key) => submissions.reduce((acc, item) => { acc[item[key]] = (acc[item[key]] || 0) + 1; return acc; }, {});
+            const top5Commodities = Object.entries(countData('commodity')).sort((a, b) => b[1] - a[1]).slice(0, 5);
+            renderChart('topCommoditiesChart', { type: 'bar', data: { labels: top5Commodities.map(c => c[0]), datasets: [{ data: top5Commodities.map(c => c[1]), backgroundColor: '#3b82f6' }] }, options: { indexAxis: 'y', responsive: true, plugins: { legend: { display: false } } } });
+            const top5Countries = Object.entries(countData('country')).sort((a, b) => b[1] - a[1]).slice(0, 5);
+            renderChart('topCountriesChart', { type: 'pie', data: { labels: top5Countries.map(c => c[0]), datasets: [{ data: top5Countries.map(c => c[1]), backgroundColor: ['#10b981', '#3b82f6', '#f97316', '#8b5cf6', '#ec4899'] }] }, options: { responsive: true } });
+            document.getElementById('summaryInsightText').textContent = `Pengajuan Form D meningkat 30% pada Mei, didominasi oleh ekspor kopi ke Mesir.`;
+        }
+
+        async function initBarChartRace() {
+            const raceContainer = d3.select("#barChartRace");
+            if (!raceContainer.node() || !raceContainer.select("svg").empty()) return;
+            
+            raceContainer.html(''); // Clear previous chart
+
+            const width = raceContainer.node().getBoundingClientRect().width;
+            const height = 500;
+            const margin = { top: 50, right: 10, bottom: 10, left: 10 };
+            const barSize = 48;
+            const n = 10;
+            const duration = 250;
+
+            const svg = raceContainer.append("svg")
+                .attr("width", width)
+                .attr("height", height);
+
+            const dataByMonth = d3.group(submissions, d => d.date.substring(0, 7));
+            const months = Array.from(dataByMonth.keys()).sort();
+            
+            let cumulativeValues = new Map();
+            SKA_DATA.commodities.forEach(c => cumulativeValues.set(c, 0));
+
+            const keyframes = [];
+            for (const month of months) {
+                const monthData = dataByMonth.get(month);
+                monthData.forEach(d => {
+                    cumulativeValues.set(d.commodity, cumulativeValues.get(d.commodity) + d.value);
+                });
+                
+                const frameData = Array.from(cumulativeValues, ([name, value]) => ({name, value}));
+                frameData.sort((a, b) => d3.descending(a.value, b.value));
+                frameData.forEach((d, i) => d.rank = i);
+                keyframes.push({month, data: frameData});
+            }
+
+            const x = d3.scaleLinear([0, 1], [margin.left, width - margin.right]);
+            const y = d3.scaleBand()
+                .domain(d3.range(n + 1))
+                .rangeRound([margin.top, margin.top + barSize * (n + 1 + 0.1)])
+                .padding(0.1);
+            
+            const color = d3.scaleOrdinal(d3.schemeTableau10);
+
+            const ticker = svg.append("text")
+                .attr("class", "ticker")
+                .attr("x", width - margin.right)
+                .attr("y", height - 5)
+                .attr("text-anchor", "end")
+                .text("");
+
+            let frameIndex = 0;
+            const timer = d3.interval(() => {
+                if (frameIndex >= keyframes.length) {
+                    timer.stop();
+                    return;
+                }
+                
+                const {month, data} = keyframes[frameIndex];
+                const topN = data.slice(0, n);
+                
+                x.domain([0, topN[0].value]);
+
+                const bars = svg.selectAll(".bar-group")
+                    .data(topN, d => d.name)
+                    .join(
+                        enter => enter.append("g")
+                            .attr("class", "bar-group")
+                            .attr("transform", d => `translate(0, ${y(n)})`)
+                            .call(g => g.append("rect")
+                                .attr("height", y.bandwidth())
+                                .attr("width", 0)
+                                .attr("fill", d => color(d.name)))
+                            .call(g => g.append("text")
+                                .attr("class", "label")
+                                .attr("x", -5)
+                                .attr("y", y.bandwidth() / 2)
+                                .attr("dy", "0.35em")
+                                .text(d => d.name))
+                            .call(g => g.append("text")
+                                .attr("class", "value-label")
+                                .attr("x", 5)
+                                .attr("y", y.bandwidth() / 2)
+                                .attr("dy", "0.35em")),
+                        update => update,
+                        exit => exit.transition(d3.transition().duration(duration)).remove()
+                            .attr("transform", d => `translate(0, ${y(n)})`)
+                    )
+                    .call(g => g.transition(d3.transition().duration(duration))
+                        .attr("transform", d => `translate(0, ${y(d.rank)})`)
+                        .select("rect")
+                        .attr("width", d => x(d.value) - x(0)))
+                    .call(g => g.select(".value-label")
+                        .transition(d3.transition().duration(duration))
+                        .attr("x", d => x(d.value) + 5)
+                        .text(d => d3.format(",.0f")(d.value)));
+
+                ticker.text(month);
+                frameIndex++;
+            }, duration * 2);
+        }
+
+        // --- TAB 2: DAFTAR PENGAJUAN ---
+        function initTableTab() {
+            populateDropdown('filterCommodity', SKA_DATA.commodities, 'Semua Komoditas');
+            populateDropdown('filterCountry', SKA_DATA.countries, 'Semua Negara');
+            populateDropdown('filterHsCode', Object.values(SKA_DATA.hsCodes), 'Semua Kode HS');
+            populateDropdown('filterSkaType', Object.keys(SKA_DATA.types), 'Semua Jenis SKA');
+            populateDropdown('filterFormSka', Object.values(SKA_DATA.types).flat(), 'Semua Form SKA');
+            populateDropdown('filterStatus', SKA_DATA.statuses, 'Semua Status');
+            
+            renderSubmissionTable(submissions);
+            ['filterSkaType', 'filterFormSka', 'filterStatus', 'filterCommodity', 'filterCountry', 'filterHsCode'].forEach(id => {
+                document.getElementById(id).addEventListener('input', applyTableFilters);
+            });
+            document.getElementById('exportCsvBtn').addEventListener('click', exportTableToCSV);
+        }
+        
+        function applyTableFilters() {
+            const filters = {
+                skaType: document.getElementById('filterSkaType').value,
+                formSka: document.getElementById('filterFormSka').value,
+                status: document.getElementById('filterStatus').value,
+                commodity: document.getElementById('filterCommodity').value,
+                country: document.getElementById('filterCountry').value,
+                hsCode: document.getElementById('filterHsCode').value,
+            };
+            const filteredData = submissions.filter(s => 
+                (!filters.skaType || s.skaType === filters.skaType) &&
+                (!filters.formSka || s.formSka === filters.formSka) &&
+                (!filters.status || s.status === filters.status) &&
+                (!filters.commodity || s.commodity === filters.commodity) &&
+                (!filters.country || s.country === filters.country) &&
+                (!filters.hsCode || s.hsCode === filters.hsCode)
+            );
+            renderSubmissionTable(filteredData);
+        }
+        
+        function renderSubmissionTable(data) {
+            const tableBody = document.getElementById('submissionTableBody');
+            if (!data.length) {
+                tableBody.innerHTML = `<tr><td colspan="8" class="text-center p-4 text-gray-500">Data tidak ditemukan.</td></tr>`;
+                return;
+            }
+            tableBody.innerHTML = data.slice(0, 20).map(s => `
+                <tr class="hover:bg-gray-50">
+                    <td class="px-6 py-4 text-sm font-medium text-gray-900">${s.no}</td>
+                    <td class="px-6 py-4 text-sm text-gray-600">${s.businessName}</td>
+                    <td class="px-6 py-4 text-sm text-gray-600">${s.commodity}</td>
+                    <td class="px-6 py-4 text-sm text-gray-600 font-mono">${s.hsCode}</td>
+                    <td class="px-6 py-4">${getStatusInfo(s.status)}</td>
+                    <td class="px-6 py-4 text-sm font-medium">
+                        <button class="text-blue-600 hover:text-blue-900" data-tooltip="Lihat Detail" onclick="window.openSubmissionModal('${s.id}')"><i class="fas fa-eye"></i></button>
+                        <button class="text-green-600 hover:text-green-900 ml-4" data-tooltip="Validasi Cepat" onclick="window.selectSubmissionForValidation('${s.id}')"><i class="fas fa-check-double"></i></button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function exportTableToCSV() {
+            const headers = ['No', 'Nama Usaha', 'Komoditas', 'Kode HS', 'Negara Tujuan', 'Jenis SKA', 'Form SKA', 'Status', 'Tanggal'];
+            const rows = submissions.map(s => [s.no, s.businessName, s.commodity, s.hsCode, s.country, s.skaType, s.formSka, s.status, s.date]);
+            let csvContent = "data:text/csv;charset=utf-8," + [headers.join(','), ...rows.map(e => e.join(','))].join('\n');
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", "submission_data.csv");
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        // --- SUBMISSION DETAIL MODAL ---
+        const modal = document.getElementById('submission-modal');
+        document.getElementById('close-modal-btn').addEventListener('click', () => modal.classList.remove('active'));
+        modal.addEventListener('click', (e) => { if(e.target === modal) modal.classList.remove('active'); });
+        
+        window.openSubmissionModal = (id) => {
+            const s = submissions.find(sub => sub.id === id);
+            if (!s) return;
+            document.getElementById('modal-ska-id').textContent = s.id;
+            const modalBody = document.getElementById('modal-body');
+            modalBody.innerHTML = `
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 text-sm">
+                    <div class="col-span-2 pb-2 border-b">
+                        <p class="font-bold text-lg">${s.businessName}</p>
+                        <p class="text-gray-500">${s.commodity} ke ${s.country}</p>
+                    </div>
+                    <div><strong>Tanggal Pengajuan:</strong><p>${s.date}</p></div>
+                    <div><strong>Status Saat Ini:</strong><p>${getStatusInfo(s.status)}</p></div>
+                    <div><strong>Jenis SKA:</strong><p>${s.skaType}</p></div>
+                    <div><strong>Form SKA:</strong><p>${s.formSka}</p></div>
+                    <div><strong>Kode HS:</strong><p class="font-mono">${s.hsCode}</p></div>
+                    <div><strong>Nilai Ekspor:</strong><p>$${s.value.toFixed(2)}</p></div>
+                    <div class="col-span-2 mt-4">
+                        <h4 class="font-bold mb-2">Dokumen Terlampir</h4>
+                        <div class="grid grid-cols-2 gap-2">
+                        ${Object.keys(s.docs).map(doc => `
+                            <div class="flex items-center p-2 rounded-md ${s.docs[doc].present ? 'bg-green-50' : 'bg-red-50'}">
+                                <i class="fas ${s.docs[doc].present ? 'fa-check-circle text-green-500' : 'fa-times-circle text-red-500'} mr-2"></i>
+                                <span>${doc}</span>
+                            </div>`).join('')}
+                        </div>
+                    </div>
+                </div>
+            `;
+            modal.classList.add('active');
+        };
+
+        // --- TAB 3: VALIDASI DOKUMEN ---
+        const confirmModal = document.getElementById('action-confirm-modal');
+        document.getElementById('confirm-modal-no').addEventListener('click', () => confirmModal.classList.remove('active'));
+
+        window.selectSubmissionForValidation = (id) => {
+            document.querySelector('.tab-btn[data-tab="validation"]').click();
+            const submission = submissions.find(s => s.id === id);
+            if (!submission) return;
+
+            document.getElementById('validationSkaId').textContent = id;
+            const formEl = document.getElementById('validationChecklistForm');
+            formEl.innerHTML = '';
+            
+            const alertEl = document.getElementById('validation-alert');
+            if (submission.hasMismatch) {
+                alertEl.classList.remove('hidden');
+                document.getElementById('validation-alert-text').textContent = submission.mismatchDetail + " Rekomendasi: Minta Revisi atau Hubungi Eksportir.";
+            } else {
+                alertEl.classList.add('hidden');
+            }
+
+            for (const [doc, data] of Object.entries(submission.docs)) {
+                const docId = doc.replace(/\s+/g, '-').toLowerCase();
+                const item = document.createElement('div');
+                item.className = 'p-3 rounded-lg border';
+                item.innerHTML = `
+                    <div class="flex items-center">
+                        <input id="check-${docId}" type="checkbox" class="h-5 w-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500" ${data.present ? 'checked' : ''}>
+                        <label for="check-${docId}" class="ml-3 font-medium">${doc}</label>
+                    </div>
+                    <textarea class="mt-2 w-full p-2 text-sm border border-gray-200 rounded-md" rows="1" placeholder="Catatan untuk ${doc}...">${data.note}</textarea>
+                `;
+                formEl.appendChild(item);
+            }
+            document.querySelectorAll('#validationActions button').forEach(b => {
+                b.disabled = false;
+                b.onclick = () => openConfirmModal(id, b.dataset.action);
+            });
+        };
+        
+        function openConfirmModal(submissionId, action) {
+            const modalTitle = document.getElementById('confirm-modal-title');
+            const modalText = document.getElementById('confirm-modal-text');
+            const yesBtn = document.getElementById('confirm-modal-yes');
+            
+            modalTitle.textContent = `Konfirmasi: ${action}`;
+            modalText.textContent = `Anda akan melakukan tindakan "${action}" pada pengajuan ${submissionId}. Lanjutkan?`;
+            confirmModal.classList.add('active');
+            
+            yesBtn.onclick = () => {
+                // Simulate action
+                const submission = submissions.find(s => s.id === submissionId);
+                if (submission) {
+                    let newStatus = submission.status;
+                    if (action === 'Setujui') newStatus = 'Persetujuan';
+                    if (action === 'Tolak') newStatus = 'Penolakan';
+                    if (action === 'Revisi') newStatus = 'Pemeriksaan'; // Back to check
+                    
+                    submission.status = newStatus;
+                    submission.audit.push({
+                        time: new Date().toISOString().slice(0, 16).replace('T', ' '),
+                        action: `Validasi: ${action}`,
+                        officer: 'Budi Santoso'
+                    });
+                }
+                confirmModal.classList.remove('active');
+                alert(`Tindakan "${action}" untuk ${submissionId} berhasil disimulasikan.`);
+                renderSubmissionTable(submissions); // Refresh table
+            };
+        }
+
+        // --- TAB 4: KINERJA PETUGAS ---
+        function initPerformanceTab() {
+            const tableBody = document.getElementById('officerPerformanceTable');
+            const officerData = SKA_DATA.officers.map(officer => {
+                const officerSubs = submissions.filter(s => s.officer === officer && s.status !== 'Permohonan');
+                const verified = officerSubs.length;
+                const errors = officerSubs.filter(s => s.hasMismatch).length;
+                const accuracy = verified > 0 ? ((verified - errors) / verified) * 100 : 100;
+                return { name: officer, verified, errors, accuracy: accuracy.toFixed(1) };
+            });
+
+            tableBody.innerHTML = officerData.map(officer => {
+                let badgeColor = 'bg-green-100 text-green-800';
+                if (officer.accuracy < 95) badgeColor = 'bg-yellow-100 text-yellow-800';
+                if (officer.accuracy < 90) badgeColor = 'bg-red-100 text-red-800';
+                return `
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-6 py-4 font-medium">${officer.name}</td>
+                        <td class="px-6 py-4">${officer.verified}</td>
+                        <td class="px-6 py-4">${officer.errors}</td>
+                        <td class="px-6 py-4"><span class="px-2 py-1 text-xs font-semibold rounded-full ${badgeColor}">${officer.accuracy}%</span></td>
+                    </tr>
+                `;
+            }).join('');
+            
+            renderChart('officerPerformanceChart', {
+                type: 'bar',
+                data: {
+                    labels: officerData.map(o => o.name),
+                    datasets: [
+                        { label: 'Jumlah Diverifikasi', data: officerData.map(o => o.verified), backgroundColor: 'rgba(54, 162, 235, 0.6)' },
+                        { label: 'Tingkat Akurasi (%)', data: officerData.map(o => o.accuracy), yAxisID: 'y1', backgroundColor: 'rgba(75, 192, 192, 0.6)' }
+                    ]
+                },
+                options: { responsive: true, scales: { y: { beginAtZero: true, position: 'left' }, y1: { beginAtZero: true, position: 'right', grid: { drawOnChartArea: false } } } }
+            });
+            
+            document.getElementById('performanceInsightText').textContent = 'Ahmad Subagja memiliki tingkat kesalahan tertinggi akibat mismatch dokumen PEB yang berulang.';
+        }
+
+        // --- TAB 5: ANALISIS EKSPOR ---
+        function initAnalysisTab() {
+            populateDropdown('analysisCountryFilter', SKA_DATA.countries, 'Pilih Negara');
+            const analysisDimension = document.getElementById('analysisDimension');
+            analysisDimension.addEventListener('change', renderAnalysisCharts);
+            document.getElementById('analysisCountryFilter').addEventListener('change', renderAnalysisCharts);
+            renderAnalysisCharts();
+        }
+        
+        function renderAnalysisCharts() {
+            const dimension = document.getElementById('analysisDimension').value;
+            const countryFilter = document.getElementById('analysisCountryFilter');
+            const insightEl = document.getElementById('analysisInsightText');
+            let config;
+
+            countryFilter.disabled = dimension !== 'country';
+
+            if (dimension === 'volume') {
+                const monthlyData = d3.rollup(submissions, v => v.length, d => d.date.substring(0, 7));
+                const sortedMonths = Array.from(monthlyData.keys()).sort();
+                config = {
+                    type: 'line',
+                    data: {
+                        labels: sortedMonths,
+                        datasets: [{
+                            label: 'Volume Pengajuan per Bulan',
+                            data: sortedMonths.map(m => monthlyData.get(m)),
+                            borderColor: '#1e3a8a', tension: 0.3, fill: true, backgroundColor: 'rgba(30, 58, 138, 0.1)'
+                        }]
+                    },
+                    options: { responsive: true }
+                };
+                insightEl.textContent = 'Volume pengajuan menunjukkan tren kenaikan stabil sepanjang semester pertama, dengan puncak di bulan Juli.';
+            } else if (dimension === 'country') {
+                const selectedCountry = countryFilter.value || SKA_DATA.countries[0];
+                const countryData = submissions.filter(s => s.country === selectedCountry);
+                const commodityCounts = d3.rollup(countryData, v => v.length, d => d.commodity);
+                const sortedCommodities = Array.from(commodityCounts.entries()).sort((a,b) => b[1] - a[1]);
+                
+                config = {
+                    type: 'bar',
+                    data: {
+                        labels: sortedCommodities.map(c => c[0]),
+                        datasets: [{
+                            label: `Top Komoditas ke ${selectedCountry}`,
+                            data: sortedCommodities.map(c => c[1]),
+                            backgroundColor: '#10b981'
+                        }]
+                    },
+                    options: { responsive: true, plugins: { legend: { display: false } } }
+                };
+                insightEl.textContent = `Untuk negara tujuan ${selectedCountry}, komoditas ${sortedCommodities[0]?.[0] || '-'} menjadi yang paling dominan.`;
+            }
+            renderChart('exportTrendChart', config);
+        }
+
+        // --- TAB 6: KOMUNIKASI ---
+        function initCommunicationTab() {
+            const chatListEl = document.getElementById('chatList');
+            chatListEl.innerHTML = chatData.map(chat => `
+                <div class="p-4 hover:bg-gray-100 cursor-pointer flex justify-between items-center" onclick="window.openChat('${chat.id}')">
+                    <div>
+                        <p class="font-bold">${chat.business}</p>
+                        <p class="text-sm text-gray-500 truncate">${chat.lastMessage}</p>
+                    </div>
+                    ${chat.unread > 0 ? `<span class="bg-red-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">${chat.unread}</span>` : ''}
+                </div>
+            `).join('');
+            if(chatData.some(c => c.unread > 0)) {
+                document.getElementById('chat-notification').classList.remove('hidden');
+            }
+        }
+
+        window.openChat = (id) => {
+            const chat = chatData.find(c => c.id === id);
+            if (!chat) return;
+            document.getElementById('chatSkaId').textContent = id;
+            const chatMessagesEl = document.getElementById('chatMessages');
+            const chatInput = document.getElementById('chatInput');
+            const chatSendBtn = document.getElementById('chatSendBtn');
+            
+            chatInput.disabled = false;
+            chatSendBtn.disabled = false;
+
+            const renderMessages = () => {
+                chatMessagesEl.innerHTML = chat.messages.map(msg => `
+                    <div class="flex ${msg.from === 'officer' ? 'justify-end' : 'justify-start'}">
+                        <div class="max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${msg.from === 'officer' ? 'bg-blue-500 text-white' : 'bg-white shadow-sm'}">
+                            ${msg.text}
+                        </div>
+                    </div>
+                `).join('');
+                chatMessagesEl.scrollTop = chatMessagesEl.scrollHeight;
+            };
+            renderMessages();
+            
+            const cannedReplies = ['Mohon segera perbaiki dokumen.', 'Dokumen Anda telah kami setujui.', 'Terima kasih atas konfirmasinya.'];
+            document.getElementById('cannedReplies').innerHTML = cannedReplies.map(reply => `<button class="px-3 py-1 bg-gray-200 text-gray-700 text-xs rounded-full hover:bg-gray-300">${reply}</button>`).join('');
+
+            chatSendBtn.onclick = () => {
+                if (chatInput.value.trim() === '') return;
+                chat.messages.push({ from: 'officer', text: chatInput.value });
+                renderMessages();
+                chatInput.value = '';
+                
+                // Simulate exporter reply
+                setTimeout(() => {
+                    chat.messages.push({ from: 'exporter', text: 'Baik, terima kasih atas informasinya. Akan segera kami tindaklanjuti.' });
+                    renderMessages();
+                }, 2000);
+            };
+        };
+        
+        // --- TAB 7: AUDIT & SIMULASI ---
+        function initAuditTab() {
+            populateDropdown('timelineSubmissionSelect', submissions.map(s => s.id), 'Pilih Pengajuan');
+            document.getElementById('timelineSubmissionSelect').addEventListener('change', (e) => renderAuditTimeline(e.target.value));
+            renderAuditTimeline(submissions[0].id);
+            document.getElementById('simSurge').addEventListener('input', updateSimulation);
+            updateSimulation();
+        }
+
+        function renderAuditTimeline(id) {
+            const submission = submissions.find(s => s.id === id);
+            const timelineEl = document.getElementById('auditTimeline');
+            const logBody = document.getElementById('auditLogBody');
+            if (!submission) return;
+
+            timelineEl.innerHTML = submission.audit.map(item => {
+                const statusInfo = getStatusInfo(item.action, false);
+                let dotClass = 'timeline-dot-info';
+                if (['Persetujuan', 'Penerbitan'].includes(item.action)) dotClass = 'timeline-dot-approved';
+                if (['Penolakan'].includes(item.action)) dotClass = 'timeline-dot-rejected';
+                if (['Pemeriksaan'].includes(item.action)) dotClass = 'timeline-dot-pending';
+                
+                return `
+                <div class="timeline-item">
+                    <div class="timeline-dot ${dotClass}"><i class="fas ${statusInfo.icon}"></i></div>
+                    <p class="font-semibold">${item.action} <span class="font-normal text-gray-500">oleh ${item.officer}</span></p>
+                    <p class="text-sm text-gray-500">${item.time}</p>
+                </div>
+            `}).join('');
+
+            logBody.innerHTML = submission.audit.map(item => `
+                <tr class="hover:bg-gray-50">
+                    <td class="px-4 py-2 text-sm text-gray-600">${item.time}</td>
+                    <td class="px-4 py-2 text-sm text-gray-600">${item.action}</td>
+                    <td class="px-4 py-2 text-sm font-medium text-gray-900">${item.officer}</td>
+                </tr>
+            `).join('');
+        }
+
+        function updateSimulation() {
+            const surge = parseInt(document.getElementById('simSurge').value);
+            document.getElementById('simSurgeValue').textContent = `${surge}%`;
+
+            const projectedWorkload = 100 * (1 + surge / 100);
+            const avgDaysIncrease = 0.5 * (surge / 20);
+            const errorProbability = 5 * (1 + surge / 50);
+
+            const simData = {
+                labels: ['Proyeksi Beban Kerja (%)', 'Kenaikan Waktu Verifikasi (hari)', 'Probabilitas Error (%)'],
+                datasets: [{
+                    data: [projectedWorkload, avgDaysIncrease, errorProbability],
+                    backgroundColor: ['rgba(255, 159, 64, 0.6)', 'rgba(255, 205, 86, 0.6)', 'rgba(255, 99, 132, 0.6)']
+                }]
+            };
+            renderChart('simulationImpactChart', { type: 'bar', data: simData, options: { indexAxis: 'y', scales: { x: { beginAtZero: true } }, plugins: { legend: { display: false } } } });
+            document.getElementById('simulationInsightText').textContent = `Jika terjadi lonjakan ekspor ${surge}%, beban kerja diproyeksi naik ke ${projectedWorkload.toFixed(0)}%, menambah ${avgDaysIncrease.toFixed(1)} hari waktu verifikasi, dan menaikkan probabilitas error ke ${errorProbability.toFixed(1)}%.`;
+        }
+
+        // --- INITIALIZE DASHBOARD ---
+        function initializeDashboard() {
+            initNotifications();
+            initSummaryTab();
+            initTableTab();
+            initPerformanceTab();
+            initCommunicationTab();
+            initAuditTab();
+            initAnalysisTab();
+            initBarChartRace();
+        }
+
+        initializeDashboard();
+    });
+    </script>
+</body>
+</html>
