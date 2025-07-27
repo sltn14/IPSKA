@@ -1,0 +1,1672 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Operasional IPSKA - Kementerian Perdagangan</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Font Awesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Chart.js for standard charts -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+    
+    <!-- D3.js for Bar Chart Race -->
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+
+    <!-- Leaflet.js for Maps -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <!-- Flatpickr for Date Range -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script src="https://npmcdn.com/flatpickr/dist/l10n/id.js"></script>
+
+    <style>
+        /* Base Styling */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6; /* Light mode background */
+        }
+
+        /* Card Styling */
+        .card {
+            background-color: #ffffff;
+            border-radius: 0.75rem;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            transition: box-shadow 0.3s ease-in-out;
+        }
+        .card:hover {
+            box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+        }
+
+        /* Main Tab Navigation Styling */
+        .tab-btn {
+            transition: all 0.3s ease;
+            border-bottom: 3px solid transparent;
+        }
+        .tab-btn.active {
+            border-color: #2563eb; /* Blue-600 */
+            color: #2563eb;
+            background-color: #eff6ff; /* Blue-50 */
+        }
+        .tab-btn:hover:not(.active) {
+            background-color: #f9fafb; /* Gray-50 */
+            color: #1f2937; /* Gray-800 */
+        }
+
+        /* Tab Content Animation */
+        .tab-content { display: none; }
+        .tab-content.active {
+            display: block;
+            animation: fadeIn 0.5s ease-in-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Modal Styling */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0, 0, 0, 0.6);
+            display: flex;
+            align-items: center; justify-content: center;
+            z-index: 100; /* High z-index */
+            opacity: 0; visibility: hidden;
+            transition: opacity 0.3s, visibility 0.3s;
+        }
+        .modal-overlay.active { opacity: 1; visibility: visible; }
+        .modal-content {
+            background: white; padding: 1.5rem 2rem; border-radius: 0.75rem;
+            width: 90%; max-width: 800px; max-height: 90vh;
+            display: flex; flex-direction: column;
+            transform: scale(0.95) translateY(10px);
+            transition: transform 0.3s ease-out;
+        }
+        .modal-overlay.active .modal-content { transform: scale(1) translateY(0); }
+        .modal-body { overflow-y: auto; }
+        
+        /* Modal Tab Styling */
+        .modal-tab-btn {
+            padding: 0.5rem 1rem;
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s;
+        }
+        .modal-tab-btn.active {
+            border-color: #2563eb;
+            color: #2563eb;
+            font-weight: 600;
+        }
+        .modal-tab-content { display: none; }
+        .modal-tab-content.active { display: block; }
+
+        /* Bar Chart Race Styling */
+        #barChartRace .axis-label { font-size: 14px; font-weight: 500; fill: #374151; }
+        #barChartRace .tick text { font-size: 12px; fill: #4b5563; }
+        #barChartRace .bar-label { font-size: 14px; font-weight: 600; fill: #1f2937; text-anchor: end; }
+        #barChartRace .value-label { font-size: 13px; font-weight: 500; fill: white; text-anchor: end; }
+        #barChartRace .ticker { font-size: 3.5rem; font-weight: 700; text-anchor: end; fill: #e5e7eb; }
+        #barChartRace-tooltip {
+            position: absolute; background: rgba(0,0,0,0.8); color: white;
+            padding: 8px 12px; border-radius: 6px; pointer-events: none;
+            opacity: 0; transition: opacity 0.2s; font-size: 0.875rem;
+            z-index: 110;
+        }
+
+        /* Custom Searchable Dropdown */
+        .searchable-dropdown { position: relative; }
+        .searchable-dropdown-list {
+            position: absolute; top: 100%; left: 0; right: 0;
+            background: white; border: 1px solid #d1d5db;
+            border-radius: 0.5rem; max-height: 200px;
+            overflow-y: auto; z-index: 40; display: none;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .searchable-dropdown-list.active { display: block; }
+        .searchable-dropdown-item {
+            padding: 0.75rem 1rem; cursor: pointer;
+            font-size: 0.875rem;
+        }
+        .searchable-dropdown-item:hover { background-color: #f3f4f6; }
+        .searchable-dropdown-item .hs-name { color: #6b7280; margin-left: 0.5rem; }
+
+        /* Notification & Profile Dropdown Styling */
+        #notificationDropdown, #profileDropdown { z-index: 101; }
+
+        /* Toast Notification */
+        #toast-notification {
+            position: fixed; top: 20px; right: 20px;
+            z-index: 200;
+            transform: translateX(120%);
+            transition: transform 0.5s ease-in-out;
+        }
+        #toast-notification.show {
+            transform: translateX(0);
+        }
+        
+        /* Audit Timeline Styling */
+        .audit-timeline-item { position: relative; padding-left: 2.5rem; padding-bottom: 1.5rem; }
+        .audit-timeline-item:last-child { padding-bottom: 0; }
+        .audit-timeline-item::before {
+            content: ''; position: absolute; left: 18px; top: 5px;
+            width: 2px; height: 100%; background-color: #e5e7eb;
+        }
+        .audit-timeline-item:last-child::before { display: none; }
+        .audit-timeline-icon {
+            position: absolute; left: 0; top: 0;
+            width: 38px; height: 38px; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            background-color: white; border: 2px solid #e5e7eb;
+        }
+        .audit-timeline-item.completed .audit-timeline-icon { border-color: #10b981; color: #10b981; }
+        .audit-timeline-item.active .audit-timeline-icon { border-color: #3b82f6; color: #3b82f6; background-color: #eff6ff;}
+    </style>
+</head>
+<body class="bg-gray-100">
+
+    <div class="container mx-auto p-4 sm:p-6 lg:p-8">
+        <!-- Header -->
+        <header class="mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center">
+            <div class="flex items-center gap-4">
+                <img src="https://upload.wikimedia.org/wikipedia/commons/e/e1/Lambang_Kementerian_Perdagangan_RI.svg" 
+                     alt="IPSKA Logo" class="h-16 w-16"
+                     onerror="this.onerror=null;this.src='https://placehold.co/64x64/3b82f6/ffffff?text=IPSKA';">
+                <div>
+                    <h1 class="text-3xl font-bold text-gray-800">Dashboard Operasional IPSKA</h1>
+                    <p class="text-gray-600 mt-1">Sistem Verifikasi dan Analisis Surat Keterangan Asal (SKA)</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-4 text-sm text-gray-500 mt-4 sm:mt-0">
+                <div class="relative">
+                    <button id="notificationBtn" class="relative p-2 rounded-full hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                        <i class="fas fa-bell text-xl"></i>
+                        <span id="notification-dot" class="hidden absolute top-0 right-0 w-3 h-3 bg-red-500 rounded-full border-2 border-white"></span>
+                    </button>
+                    <div id="notificationDropdown" class="hidden absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-xl"></div>
+                </div>
+                <div class="relative">
+                    <button id="profileBtn" class="flex items-center gap-2 bg-white px-3 py-2 rounded-full shadow-sm hover:shadow-md transition focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                        <img src="https://i.pravatar.cc/40?u=budi.santoso" alt="User Avatar" class="w-8 h-8 rounded-full">
+                        <div>
+                            <p class="font-semibold text-gray-800">Budi Santoso</p>
+                            <p class="text-xs">Petugas Verifikator</p>
+                        </div>
+                        <i class="fas fa-chevron-down text-xs ml-1"></i>
+                    </button>
+                    <div id="profileDropdown" class="hidden absolute right-0 mt-2 w-96 bg-white rounded-lg shadow-xl"></div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Tab Navigation -->
+        <nav class="card p-2 rounded-lg mb-6 sticky top-4 z-30 bg-white/80 backdrop-blur-sm">
+            <div class="flex flex-wrap items-center text-sm font-medium text-gray-600">
+                <button class="tab-btn active flex-grow sm:flex-grow-0 px-4 py-2 rounded-md" data-tab="summary"><i class="fas fa-chart-pie mr-2"></i>Ringkasan</button>
+                <button class="tab-btn flex-grow sm:flex-grow-0 px-4 py-2 rounded-md" data-tab="submissions"><i class="fas fa-table mr-2"></i>Daftar Pengajuan</button>
+                <button class="tab-btn flex-grow sm:flex-grow-0 px-4 py-2 rounded-md relative" data-tab="communication">
+                    <i class="fas fa-comments mr-2"></i>Komunikasi
+                    <span id="chat-notification" class="hidden absolute top-1 right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-white"></span>
+                </button>
+                <button class="tab-btn flex-grow sm:flex-grow-0 px-4 py-2 rounded-md" data-tab="performance"><i class="fas fa-user-check mr-2"></i>Kinerja Petugas</button>
+                <button class="tab-btn flex-grow sm:flex-grow-0 px-4 py-2 rounded-md" data-tab="analysis"><i class="fas fa-chart-line mr-2"></i>Analisis Ekspor</button>
+                <button class="tab-btn flex-grow sm:flex-grow-0 px-4 py-2 rounded-md" data-tab="audit"><i class="fas fa-history mr-2"></i>Audit & Simulasi</button>
+            </div>
+        </nav>
+
+        <main>
+            <!-- TAB 1: RINGKASAN PENGAJUAN -->
+            <div id="summary-tab" class="tab-content active space-y-6">
+                 <!-- Global Filter Panel -->
+                <div class="card p-4">
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 items-end">
+                        <div>
+                            <label for="globalFilterTime" class="block text-xs font-medium text-gray-500 mb-1">Periode Waktu</label>
+                            <select id="globalFilterTime" class="w-full p-2 border border-gray-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500"></select>
+                        </div>
+                        <div id="date-filter-container" class="hidden lg:col-span-2"></div>
+                        <div>
+                            <label for="globalFilterHsLevel" class="block text-xs font-medium text-gray-500 mb-1">Level Kode HS</label>
+                            <select id="globalFilterHsLevel" class="w-full p-2 border border-gray-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500">
+                                <option value="2">2 Digit</option> <option value="4">4 Digit</option>
+                                <option value="6">6 Digit</option> <option value="8" selected>8 Digit</option>
+                            </select>
+                        </div>
+                        <div class="searchable-dropdown">
+                            <label for="globalFilterHsCode" class="block text-xs font-medium text-gray-500 mb-1">Kode HS</label>
+                            <input type="text" id="globalFilterHsCode" class="w-full p-2 border border-gray-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500" placeholder="Cari Kode HS...">
+                            <div id="globalFilterHsCodeList" class="searchable-dropdown-list"></div>
+                        </div>
+                        <div class="searchable-dropdown">
+                            <label for="globalFilterCountry" class="block text-xs font-medium text-gray-500 mb-1">Negara Tujuan</label>
+                            <input type="text" id="globalFilterCountry" class="w-full p-2 border border-gray-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500" placeholder="Cari Negara...">
+                            <div id="globalFilterCountryList" class="searchable-dropdown-list"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <div class="card p-6"><h3 class="text-gray-500 font-medium">Total Pengajuan</h3><p id="kpiTotal" class="text-3xl font-bold mt-2 text-blue-600">0</p></div>
+                    <div class="card p-6"><h3 class="text-gray-500 font-medium">Disetujui</h3><p id="kpiValidated" class="text-3xl font-bold mt-2 text-green-600">0</p></div>
+                    <div class="card p-6"><h3 class="text-gray-500 font-medium">Ditolak</h3><p id="kpiRejected" class="text-3xl font-bold mt-2 text-red-600">0</p></div>
+                    <div class="card p-6"><h3 class="text-gray-500 font-medium">Dalam Proses</h3><p id="kpiProcessing" class="text-3xl font-bold mt-2 text-yellow-500">0</p></div>
+                </div>
+                <!-- REVISION: Status Overview Cards -->
+                <div class="card p-6">
+                    <h3 class="font-bold text-lg mb-4">Tinjauan Status Pengajuan Kumulatif</h3>
+                    <div id="status-overview" class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3 text-center"></div>
+                </div>
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <div class="lg:col-span-2 card p-6"><h3 class="font-bold text-lg mb-4">Top 5 Komoditas Diajukan</h3><canvas id="topCommoditiesChart"></canvas></div>
+                    <div class="card p-6"><h3 class="font-bold text-lg mb-4">Top 5 Negara Tujuan</h3><canvas id="topCountriesChart"></canvas></div>
+                </div>
+                <div class="card p-6">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="font-bold text-lg">Tren Volume Ekspor Komoditas (Nilai FOB USD)</h3>
+                        <button id="barChartRacePlayPause" class="px-3 py-1 bg-gray-200 rounded-md text-sm font-medium hover:bg-gray-300">
+                            <i class="fas fa-pause mr-1"></i> Jeda
+                        </button>
+                    </div>
+                    <div id="barChartRace" class="w-full h-[500px] relative"></div>
+                    <div id="barChartRace-tooltip"></div>
+                    <div id="storytelling-summary" class="mt-4 p-4 bg-blue-50 border-l-4 border-blue-500 text-blue-800 rounded-r-lg">
+                        <p><i class="fas fa-lightbulb mr-2"></i><strong>Insight:</strong> <span id="summaryInsightText">Menganalisis data...</span></p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 2: DAFTAR PENGAJUAN -->
+            <div id="submissions-tab" class="tab-content">
+                <div class="card p-6">
+                    <div class="mb-4">
+                        <input type="text" id="globalTableSearch" class="w-full p-2 border border-gray-300 rounded-md" placeholder="&#xf002; Cari di seluruh tabel (Nama Usaha, Komoditas, Negara, dll)..." style="font-family: 'Inter', 'Font Awesome 6 Free';">
+                    </div>
+                    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mb-4">
+                        <div class="searchable-dropdown">
+                            <input type="text" data-filter-key="country" class="w-full p-2 border border-gray-300 rounded-md text-sm" placeholder="Semua Negara Tujuan">
+                            <div class="searchable-dropdown-list"></div>
+                        </div>
+                        <div class="searchable-dropdown">
+                            <input type="text" data-filter-key="formSka" class="w-full p-2 border border-gray-300 rounded-md text-sm" placeholder="Semua Form SKA">
+                            <div class="searchable-dropdown-list"></div>
+                        </div>
+                        <select id="filterTableHsLevel" class="w-full p-2 border border-gray-300 rounded-md text-sm"><option value="2">HS Lvl 2</option><option value="4">HS Lvl 4</option><option value="6">HS Lvl 6</option><option value="8" selected>HS Lvl 8</option></select>
+                        <div class="searchable-dropdown">
+                            <input type="text" data-filter-key="hsCode" class="w-full p-2 border border-gray-300 rounded-md text-sm" placeholder="Semua Kode HS">
+                            <div class="searchable-dropdown-list"></div>
+                        </div>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full bg-white text-sm">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">No</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tgl Pengajuan</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nama Usaha</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Komoditas</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Kode HS</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Negara Tujuan</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody id="submissionTableBody" class="divide-y divide-gray-200"></tbody>
+                        </table>
+                    </div>
+                    <div id="pagination" class="flex justify-between items-center mt-4 text-sm text-gray-600"></div>
+                </div>
+            </div>
+
+            <!-- TAB 3: KOMUNIKASI -->
+            <div id="communication-tab" class="tab-content">
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <div class="lg:col-span-1 card overflow-hidden">
+                        <div class="p-4 font-bold border-b bg-gray-50">Daftar Percakapan</div>
+                        <div id="chatList" class="divide-y max-h-[600px] overflow-y-auto"></div>
+                    </div>
+                    <div id="chat-window" class="lg:col-span-2 card flex flex-col h-[650px]">
+                        <div class="p-4 font-bold border-b bg-gray-50 flex justify-between items-center">
+                            <span>Diskusi Pengajuan: <span id="chatSkaId" class="font-mono">Pilih Percakapan</span></span>
+                            <span id="chat-status-indicator" class="text-xs font-medium px-2 py-1 rounded-full"></span>
+                        </div>
+                        <div id="chatMessages" class="flex-grow p-4 space-y-4 overflow-y-auto bg-gray-50">
+                           <div class="flex flex-col items-center justify-center h-full text-gray-500">
+                                <i class="fas fa-comments text-5xl mb-4"></i>
+                                <p>Pilih percakapan dari daftar di sebelah kiri untuk memulai.</p>
+                           </div>
+                        </div>
+                        <div class="p-4 bg-white border-t">
+                            <div class="flex items-center">
+                                <input type="text" id="chatInput" class="flex-grow w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500" placeholder="Ketik balasan..." disabled>
+                                <button id="chatSendBtn" class="ml-3 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed" disabled><i class="fas fa-paper-plane"></i></button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 4: KINERJA PETUGAS -->
+            <div id="performance-tab" class="tab-content">
+                 <div class="card p-6">
+                    <h3 class="font-bold text-lg mb-4">Kinerja Petugas Verifikasi</h3>
+                    <div class="overflow-x-auto mb-6">
+                        <table class="min-w-full bg-white">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nama Petugas</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Jumlah Verifikasi</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Kesalahan</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Akurasi</th>
+                                </tr>
+                            </thead>
+                            <tbody id="officerPerformanceTable" class="divide-y divide-gray-200"></tbody>
+                        </table>
+                    </div>
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div>
+                            <h4 class="font-bold text-md mb-2">Visualisasi Performa (Radar Chart)</h4>
+                            <canvas id="officerPerformanceChart"></canvas>
+                        </div>
+                        <div id="storytelling-performance" class="p-4 bg-blue-50 border-l-4 border-blue-500 text-blue-800 rounded-r-lg self-center">
+                            <p><i class="fas fa-lightbulb mr-2"></i><strong>Interpretasi:</strong> <span id="performanceInsightText">Memuat data...</span></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 5: ANALISIS EKSPOR -->
+            <div id="analysis-tab" class="tab-content">
+                <div class="card p-6">
+                    <h3 class="font-bold text-lg mb-4">Analisis Tren Ekspor</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                        <div>
+                            <label class="text-sm font-medium">Dimensi Analisis</label>
+                            <select id="analysisDimension" class="w-full p-2 border border-gray-300 rounded-md">
+                                <option value="global">Tren Volume Global</option>
+                                <option value="country">Komoditas per Negara</option>
+                            </select>
+                        </div>
+                         <div id="analysisFilterContainer">
+                            <!-- Dynamic filters here -->
+                        </div>
+                    </div>
+                    <div id="analysisChartContainer" style="height: 400px;"><canvas id="exportTrendChart"></canvas></div>
+                    <div id="leafletMapContainer" class="rounded-lg" style="height: 400px; display: none;"></div>
+                    <div id="storytelling-analysis" class="mt-4 p-4 bg-blue-50 border-l-4 border-blue-500 text-blue-800 rounded-r-lg">
+                        <p><i class="fas fa-lightbulb mr-2"></i><strong>Insight:</strong> <span id="analysisInsightText"></span></p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 6: AUDIT & SIMULASI -->
+            <div id="audit-tab" class="tab-content">
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div class="space-y-6">
+                        <!-- REVISION: Submission Timeline with Dropdown -->
+                        <div class="card p-6">
+                             <h3 class="font-bold text-lg mb-4">Timeline Progres Pengajuan</h3>
+                            <select id="timelineSubmissionSelect" class="w-full p-2 border border-gray-300 rounded-md mb-4"></select>
+                            <div id="auditTimeline" class="relative"></div>
+                        </div>
+                        <div class="card p-6">
+                            <h3 class="font-bold text-lg mb-4">Jejak Audit Sistem</h3>
+                            <div class="overflow-y-auto h-96">
+                                <table class="min-w-full bg-white">
+                                    <thead class="bg-gray-50 sticky top-0">
+                                        <tr>
+                                            <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Waktu</th>
+                                            <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Aksi</th>
+                                            <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Pengguna</th>
+                                            <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="auditLogBody" class="divide-y divide-gray-200"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card p-6">
+                        <h3 class="font-bold text-lg mb-4">Simulasi Beban Kerja</h3>
+                        <div class="space-y-4">
+                            <div>
+                                <label for="simSurge" class="font-medium">Jika volume pengajuan naik</label>
+                                <div class="flex items-center gap-4">
+                                    <input type="range" id="simSurge" min="0" max="100" value="25" class="w-full">
+                                    <span id="simSurgeValue" class="font-bold text-blue-600 w-12 text-center">25%</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mt-6">
+                            <h4 class="font-bold text-md mb-2">Prediksi Dampak</h4>
+                            <div class="grid grid-cols-3 gap-4 text-center">
+                                <div><p class="text-2xl font-bold text-orange-500" id="simDelay">0 hari</p><p class="text-xs text-gray-500">Potensi Delay</p></div>
+                                <div><p class="text-2xl font-bold text-blue-500" id="simWorkload">0%</p><p class="text-xs text-gray-500">Beban Kerja</p></div>
+                                <div><p class="text-2xl font-bold text-red-500" id="simErrorRate">0%</p><p class="text-xs text-gray-500">Tingkat Error</p></div>
+                            </div>
+                            <div id="storytelling-simulation" class="mt-4 p-4 bg-yellow-50 border-l-4 border-yellow-500 text-yellow-800 rounded-r-lg">
+                                <p><i class="fas fa-exclamation-triangle mr-2"></i><strong>Prediksi:</strong> <span id="simulationInsightText"></span></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+    
+    <!-- Modals Container -->
+    <div id="detail-modal" class="modal-overlay"></div>
+    <div id="validation-modal" class="modal-overlay"></div>
+    <div id="message-modal" class="modal-overlay"></div>
+
+    <!-- Toast Notification -->
+    <div id="toast-notification"></div>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', function () {
+        // --- MOCK DATA & ENHANCEMENTS ---
+        let auditLogs = [];
+        const SKA_DATA = {
+            statuses: ['Permohonan', 'Pemeriksaan', 'Revisi Diminta', 'Disetujui', 'Ditolak', 'Diterbitkan'],
+            commodities: ['Kopi', 'CPO', 'Tekstil', 'Nikel', 'Kakao', 'Karet', 'Udang', 'Alas Kaki', 'Mebel', 'Elektronik'],
+            countries: {
+                'Thailand': [100.9925, 13.7563], 'Jerman': [10.4515, 51.1657], 'India': [78.9629, 20.5937], 
+                'USA': [-95.7129, 37.0902], 'Tiongkok': [104.1954, 35.8617], 'Belanda': [5.2913, 52.1326], 
+                'Jepang': [138.2529, 36.2048], 'Malaysia': [101.9758, 4.2105], 'Mesir': [30.8025, 26.8206],
+                'Australia': [133.7751, -25.2744], 'Korea Selatan': [127.7669, 35.9078]
+            },
+            officers: ['Citra Lestari', 'Ahmad Subagja', 'Budi Santoso'],
+            hsCodeMap: {
+                '09': { name: 'Kopi, Teh, Maté, dan Rempah-rempah' },
+                '0901': { name: 'Kopi, sangrai atau tidak, digiling atau tidak' },
+                '090111': { name: 'Kopi, tidak disangrai, tidak dihilangkan kafeinnya' },
+                '09011110': { name: 'Kopi Arabika' },
+                '15': { name: 'Lemak dan minyak hewani atau nabati' },
+                '1511': { name: 'Minyak kelapa sawit dan fraksinya' },
+                '151110': { name: 'Minyak kelapa sawit mentah (CPO)' },
+                '15111000': { name: 'Minyak kelapa sawit mentah (CPO)' },
+                '62': { name: 'Pakaian dan aksesori pakaian, tidak dirajut' },
+                '6203': { name: 'Setelan, ansambel, jaket pria atau anak laki-laki' },
+                '620342': { name: 'Celana panjang dari katun' },
+                '62034200': { name: 'Celana panjang pria dari katun' },
+                '75': { name: 'Nikel dan barang daripadanya' },
+                '7502': { name: 'Nikel yang tidak ditempa' },
+                '750210': { name: 'Nikel, tidak berpaduan' },
+                '75021000': { name: 'Nikel, tidak berpaduan, tidak ditempa' },
+            },
+            formSka: ['Form D', 'Form AK', 'Form AANZ', 'Form IJEPA', 'Form B', 'Form ICO'],
+            requiredDocs: [
+                { id: 'invoice', name: 'Invoice' },
+                { id: 'packing_list', name: 'Packing List' },
+                { id: 'peb', name: 'Pemberitahuan Ekspor Barang (PEB)' },
+                { id: 'bl', name: 'Bill of Lading / Air Waybill' },
+                { id: 'coo', name: 'Certificate of Origin (jika ada)' }
+            ]
+        };
+
+        const generateHsCodeForCommodity = (commodity) => {
+            const commodityHsMap = {
+                'Kopi': { '2': '09', '4': '0901', '6': '090111', '8': '09011110' },
+                'CPO': { '2': '15', '4': '1511', '6': '151110', '8': '15111000' },
+                'Tekstil': { '2': '62', '4': '6203', '6': '620342', '8': '62034200' },
+                'Nikel': { '2': '75', '4': '7502', '6': '750210', '8': '75021000' },
+            };
+            return commodityHsMap[commodity] || { '2': '99', '4': '9999', '6': '999999', '8': '99999999' };
+        }
+
+        const submissions = Array.from({ length: 500 }, (_, i) => {
+            const year = 2021 + (i % 3);
+            const date = new Date(year, Math.floor(i / 45), (i % 28) + 1);
+            const commodity = SKA_DATA.commodities[i % SKA_DATA.commodities.length];
+            const status = SKA_DATA.statuses[i % SKA_DATA.statuses.length];
+            const officer = SKA_DATA.officers[i % SKA_DATA.officers.length];
+            
+            const submission = {
+                no: i + 1,
+                id: `SKA-${String(year).slice(2)}${String(1001 + i).padStart(5, '0')}`,
+                submissionDate: date,
+                businessName: `PT Ekspor Jaya Makmur ${String.fromCharCode(65 + (i % 26))}`,
+                commodity: commodity,
+                hsCode: generateHsCodeForCommodity(commodity),
+                country: Object.keys(SKA_DATA.countries)[i % Object.keys(SKA_DATA.countries).length],
+                formSka: SKA_DATA.formSka[i % SKA_DATA.formSka.length],
+                status: status,
+                value: 10000 + Math.floor(Math.random() * 90000),
+                officer: officer,
+                documents: SKA_DATA.requiredDocs.map(doc => ({
+                    ...doc,
+                    status: Math.random() > 0.15 ? 'Uploaded' : 'Missing',
+                    fileUrl: Math.random() > 0.15 ? '#' : null,
+                    uploadDate: new Date(date.getTime() - 2 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+                })),
+                auditHistory: []
+            };
+            
+            let currentDate = new Date(date);
+            const statusIndex = SKA_DATA.statuses.indexOf(status);
+            submission.auditHistory.push({ status: 'Permohonan', date: currentDate.toISOString(), officer: 'Sistem', remarks: 'Pengajuan diterima oleh sistem.' });
+            if (statusIndex > 0) {
+                currentDate.setDate(currentDate.getDate() + Math.random() * 2);
+                submission.auditHistory.push({ status: 'Pemeriksaan', date: currentDate.toISOString(), officer: officer, remarks: 'Dokumen sedang diperiksa.' });
+            }
+            if (statusIndex > 1) {
+                currentDate.setDate(currentDate.getDate() + Math.random() * 3);
+                const finalStatus = status;
+                submission.auditHistory.push({ status: finalStatus, date: currentDate.toISOString(), officer: officer, remarks: `Status diperbarui menjadi ${finalStatus}.` });
+            }
+
+            logAudit('CREATE', 'Sistem', submission.id, true);
+            return submission;
+        });
+
+        let chatData = {};
+        const storedChatData = localStorage.getItem('ipskaChatData');
+        if (storedChatData) {
+            chatData = JSON.parse(storedChatData);
+        } else {
+            submissions.slice(0, 5).forEach((s, i) => {
+                chatData[s.id] = {
+                    businessName: s.businessName,
+                    status: i === 0 ? 'Menunggu Balasan' : 'Dibalas',
+                    lastActivity: new Date().toISOString(),
+                    messages: i === 0 
+                        ? [{ from: 'exporter', text: 'Selamat pagi, mohon informasi mengenai status pengajuan saya. Terima kasih.', time: '10:30' }]
+                        : [{ from: 'officer', text: 'Ada kesalahan data pada PEB, mohon segera diperbaiki.', time: '09:15' }, {from: 'exporter', text: 'Baik, akan segera kami perbaiki dan unggah kembali. Terima kasih atas informasinya.', time: '09:20'}]
+                };
+            });
+        }
+        
+        // --- GLOBAL STATE ---
+        let chartInstances = {};
+        let filteredSubmissions = [...submissions];
+        let tableFilteredData = [...submissions];
+        let tableCurrentPage = 1;
+        const ITEMS_PER_PAGE = 10;
+        let d3Timer;
+        let isRacePaused = false;
+        let map;
+
+        // --- UTILITY & HELPER FUNCTIONS ---
+        const getStatusInfo = (status, isBadge = true) => {
+            const statusMap = {
+                'Diterbitkan': { text: 'Diterbitkan', icon: 'fa-check-circle', color: 'green' },
+                'Disetujui': { text: 'Disetujui', icon: 'fa-check', color: 'blue' },
+                'Ditolak': { text: 'Ditolak', icon: 'fa-times-circle', color: 'red' },
+                'Pemeriksaan': { text: 'Diperiksa', icon: 'fa-search', color: 'yellow' },
+                'Permohonan': { text: 'Permohonan', icon: 'fa-file-alt', color: 'gray' },
+                'Revisi Diminta': { text: 'Revisi', icon: 'fa-edit', color: 'orange' }
+            };
+            const info = statusMap[status] || { text: 'N/A', icon: 'fa-question-circle', color: 'gray' };
+            if(isBadge) {
+                return `<span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-${info.color}-100 text-${info.color}-800"><i class="fas ${info.icon} mr-1.5"></i>${info.text}</span>`;
+            }
+            return info;
+        };
+
+        const renderChart = (ctxId, config) => {
+            if (chartInstances[ctxId]) chartInstances[ctxId].destroy();
+            const ctx = document.getElementById(ctxId);
+            if (ctx) chartInstances[ctxId] = new Chart(ctx, config);
+        };
+        
+        function logAudit(action, user, submissionId, silent = false) {
+            auditLogs.unshift({ time: new Date().toISOString(), action, user, submissionId });
+            if(!silent && document.getElementById('audit-tab').classList.contains('active')) {
+                renderAuditLog();
+            }
+        }
+
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('toast-notification');
+            const colors = {
+                success: 'bg-green-500',
+                error: 'bg-red-500',
+                info: 'bg-blue-500'
+            };
+            toast.innerHTML = `
+                <div class="${colors[type]} text-white font-bold rounded-lg shadow-lg p-4 flex items-center gap-4">
+                    <i class="fas ${type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle'}"></i>
+                    <span>${message}</span>
+                </div>
+            `;
+            toast.classList.add('show');
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3000);
+        }
+
+        // --- TAB & DROPDOWN MANAGEMENT ---
+        const tabs = document.querySelectorAll('.tab-btn');
+        tabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                const tabName = tab.dataset.tab;
+                tabs.forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                const targetContent = document.getElementById(tabName + '-tab');
+                if (targetContent) {
+                    targetContent.classList.add('active');
+                    if (tabName === 'summary') applyGlobalFilters();
+                    if (tabName === 'submissions') initSubmissionsTab();
+                    if (tabName === 'communication') initCommunicationTab();
+                    if (tabName === 'performance') initPerformanceTab();
+                    if (tabName === 'analysis') initAnalysisTab();
+                    if (tabName === 'audit') initAuditTab();
+                }
+            });
+        });
+
+        const setupDropdownToggle = (btnId, dropdownId, onOpen) => {
+            const btn = document.getElementById(btnId);
+            const dropdown = document.getElementById(dropdownId);
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const isHidden = dropdown.classList.contains('hidden');
+                document.getElementById('notificationDropdown').classList.add('hidden');
+                document.getElementById('profileDropdown').classList.add('hidden');
+                
+                if (isHidden) {
+                    dropdown.classList.remove('hidden');
+                    if(onOpen) onOpen();
+                } else {
+                    dropdown.classList.add('hidden');
+                }
+            });
+        };
+        document.addEventListener('click', () => {
+            document.getElementById('notificationDropdown').classList.add('hidden');
+            document.getElementById('profileDropdown').classList.add('hidden');
+        });
+        
+        // --- SUMMARY TAB ---
+        function initSummaryTab() {
+            setupGlobalFilters();
+            applyGlobalFilters();
+            document.getElementById('barChartRacePlayPause').addEventListener('click', toggleBarChartRace);
+        }
+
+        function setupGlobalFilters() {
+            const timeFilter = document.getElementById('globalFilterTime');
+            timeFilter.innerHTML = `
+                <option value="all">Semua Waktu</option> <option value="today">Hari Ini</option>
+                <option value="week">Minggu Ini</option> <option value="month" selected>Bulan Ini</option>
+                <option value="year">Tahun Ini</option> <option value="monthly">Per Bulan</option>
+                <option value="custom">Kustom</option>`;
+            timeFilter.addEventListener('change', handleTimeFilterChange);
+
+            document.getElementById('globalFilterHsLevel').addEventListener('change', () => {
+                const hsCodeInput = document.getElementById('globalFilterHsCode');
+                hsCodeInput.value = ''; hsCodeInput.dataset.value = '';
+                applyGlobalFilters();
+            });
+
+            setupSearchableDropdown('globalFilterHsCode', 'globalFilterHsCodeList', getHsCodeOptions, applyGlobalFilters);
+            setupSearchableDropdown('globalFilterCountry', 'globalFilterCountryList', getCountryOptions, applyGlobalFilters);
+        }
+
+        function handleTimeFilterChange() {
+            const selection = document.getElementById('globalFilterTime').value;
+            const container = document.getElementById('date-filter-container');
+            container.innerHTML = ''; container.classList.add('hidden');
+
+            if (selection === 'monthly') {
+                container.classList.remove('hidden');
+                container.innerHTML = `<div class="grid grid-cols-2 gap-2"><div><label for="month-picker" class="block text-xs font-medium text-gray-500 mb-1">Bulan</label><select id="month-picker" class="w-full p-2 border border-gray-300 rounded-md text-sm"></select></div><div><label for="year-picker" class="block text-xs font-medium text-gray-500 mb-1">Tahun</label><select id="year-picker" class="w-full p-2 border border-gray-300 rounded-md text-sm"></select></div></div>`;
+                const monthSelect = document.getElementById('month-picker');
+                const yearSelect = document.getElementById('year-picker');
+                monthSelect.innerHTML = Array.from({length: 12}, (_, i) => `<option value="${i}">${new Date(0, i).toLocaleString('id', {month: 'long'})}</option>`).join('');
+                yearSelect.innerHTML = [...new Set(submissions.map(s => s.submissionDate.getFullYear()))].sort((a,b) => b-a).map(y => `<option value="${y}">${y}</option>`).join('');
+                monthSelect.addEventListener('change', applyGlobalFilters);
+                yearSelect.addEventListener('change', applyGlobalFilters);
+            } else if (selection === 'custom') {
+                container.classList.remove('hidden');
+                container.innerHTML = `<div><label for="custom-date-picker" class="block text-xs font-medium text-gray-500 mb-1">Rentang Kustom</label><input id="custom-date-picker" class="w-full p-2 border border-gray-300 rounded-md text-sm bg-white" placeholder="Pilih tanggal.."></div>`;
+                flatpickr("#custom-date-picker", { mode: "range", dateFormat: "Y-m-d", locale: "id", onChange: (selectedDates) => { if (selectedDates.length === 2) applyGlobalFilters(); } });
+            }
+            applyGlobalFilters();
+        }
+
+        function applyGlobalFilters() {
+            const timeFilter = document.getElementById('globalFilterTime').value;
+            const hsLevel = document.getElementById('globalFilterHsLevel').value;
+            const hsCode = document.getElementById('globalFilterHsCode').dataset.value || '';
+            const country = document.getElementById('globalFilterCountry').dataset.value || '';
+            let tempSubmissions = [...submissions];
+
+            const now = new Date();
+            const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+            if (timeFilter === 'today') {
+                tempSubmissions = tempSubmissions.filter(s => s.submissionDate.toDateString() === today.toDateString());
+            } else if (timeFilter === 'week') {
+                const startOfWeek = new Date(today);
+                startOfWeek.setDate(today.getDate() - today.getDay() + (today.getDay() === 0 ? -6 : 1));
+                tempSubmissions = tempSubmissions.filter(s => s.submissionDate >= startOfWeek);
+            } else if (timeFilter === 'month') {
+                const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+                tempSubmissions = tempSubmissions.filter(s => s.submissionDate >= startOfMonth);
+            } else if (timeFilter === 'year') {
+                const startOfYear = new Date(today.getFullYear(), 0, 1);
+                tempSubmissions = tempSubmissions.filter(s => s.submissionDate >= startOfYear);
+            } else if (timeFilter === 'monthly') {
+                const month = document.getElementById('month-picker')?.value;
+                const year = document.getElementById('year-picker')?.value;
+                if(month && year) tempSubmissions = tempSubmissions.filter(s => s.submissionDate.getMonth() == month && s.submissionDate.getFullYear() == year);
+            } else if (timeFilter === 'custom') {
+                const picker = document.getElementById('custom-date-picker')?._flatpickr;
+                if (picker && picker.selectedDates.length === 2) {
+                    const [start, end] = picker.selectedDates;
+                    end.setHours(23, 59, 59); // Include the whole end day
+                    tempSubmissions = tempSubmissions.filter(s => s.submissionDate >= start && s.submissionDate <= end);
+                }
+            }
+            if (hsCode) tempSubmissions = tempSubmissions.filter(s => s.hsCode[hsLevel] === hsCode);
+            if (country) tempSubmissions = tempSubmissions.filter(s => s.country === country);
+
+            filteredSubmissions = tempSubmissions;
+            updateSummaryDashboard();
+        }
+
+        function updateSummaryDashboard() {
+            const validated = filteredSubmissions.filter(s => ['Disetujui', 'Diterbitkan'].includes(s.status)).length;
+            const rejected = filteredSubmissions.filter(s => s.status === 'Ditolak').length;
+            const processing = filteredSubmissions.length - validated - rejected;
+            document.getElementById('kpiTotal').textContent = filteredSubmissions.length.toLocaleString('id-ID');
+            document.getElementById('kpiValidated').textContent = validated.toLocaleString('id-ID');
+            document.getElementById('kpiRejected').textContent = rejected.toLocaleString('id-ID');
+            document.getElementById('kpiProcessing').textContent = processing.toLocaleString('id-ID');
+
+            // REVISION: Cumulative status counts as cards
+            const statusCounts = submissions.reduce((acc, s) => { acc[s.status] = (acc[s.status] || 0) + 1; return acc; }, {});
+            document.getElementById('status-overview').innerHTML = SKA_DATA.statuses.map(status => {
+                const info = getStatusInfo(status, false);
+                const count = statusCounts[status] || 0;
+                return `<div class="p-2 rounded-lg border border-${info.color}-200 bg-${info.color}-50">
+                            <p class="font-bold text-xl text-${info.color}-700">${count.toLocaleString('id-ID')}</p>
+                            <p class="text-xs text-${info.color}-600 font-medium">${info.text}</p>
+                        </div>`;
+            }).join('');
+
+            const countData = (key) => filteredSubmissions.reduce((acc, item) => { acc[item[key]] = (acc[item[key]] || 0) + 1; return acc; }, {});
+            const top5Commodities = Object.entries(countData('commodity')).sort((a, b) => b[1] - a[1]).slice(0, 5);
+            renderChart('topCommoditiesChart', { type: 'bar', data: { labels: top5Commodities.map(c => c[0]), datasets: [{ label: 'Jumlah Pengajuan', data: top5Commodities.map(c => c[1]), backgroundColor: '#3b82f6' }] }, options: { indexAxis: 'y', responsive: true, plugins: { legend: { display: false } } } });
+            const top5Countries = Object.entries(countData('country')).sort((a, b) => b[1] - a[1]).slice(0, 5);
+            renderChart('topCountriesChart', { type: 'pie', data: { labels: top5Countries.map(c => c[0]), datasets: [{ data: top5Countries.map(c => c[1]), backgroundColor: ['#10b981', '#3b82f6', '#f97316', '#8b5cf6', '#ec4899'] }] }, options: { responsive: true, plugins: { legend: { position: 'bottom' } } } });
+            
+            initBarChartRace(filteredSubmissions);
+        }
+
+        function toggleBarChartRace() {
+            isRacePaused = !isRacePaused;
+            const button = document.getElementById('barChartRacePlayPause');
+            if (isRacePaused) {
+                if (d3Timer) d3Timer.stop();
+                button.innerHTML = `<i class="fas fa-play mr-1"></i> Lanjutkan`;
+            } else {
+                initBarChartRace(filteredSubmissions, true); // Resume
+                button.innerHTML = `<i class="fas fa-pause mr-1"></i> Jeda`;
+            }
+        }
+
+        let frameIndex = 0;
+        function initBarChartRace(data, isResuming = false) {
+            if (d3Timer) d3Timer.stop();
+            if (!isResuming) frameIndex = 0;
+
+            const raceContainer = d3.select("#barChartRace");
+            if (!isResuming) raceContainer.selectAll("*").remove();
+            
+            if (data.length === 0) {
+                raceContainer.append("div").attr("class", "flex items-center justify-center h-full text-gray-500").text("Tidak ada data untuk ditampilkan.");
+                document.getElementById('summaryInsightText').textContent = "Tidak ada data untuk periode yang dipilih.";
+                return;
+            }
+
+            const width = raceContainer.node().getBoundingClientRect().width;
+            const height = 500;
+            const margin = { top: 50, right: 80, bottom: 30, left: 180 };
+            const barSize = 40;
+            const n = 10;
+            const duration = 250;
+
+            const svg = isResuming ? raceContainer.select("svg") : raceContainer.append("svg").attr("viewBox", [0, 0, width, height]);
+            const tooltip = d3.select("#barChartRace-tooltip");
+
+            const months = [...new Set(data.map(d => d.submissionDate.toISOString().slice(0, 7)))].sort();
+            let cumulativeValues = new Map();
+            const hsLevel = document.getElementById('globalFilterHsLevel').value;
+
+            const commodityHsMap = new Map();
+            data.forEach(d => {
+                if (!commodityHsMap.has(d.commodity)) {
+                    commodityHsMap.set(d.commodity, d.hsCode[hsLevel]);
+                }
+                cumulativeValues.set(d.commodity, 0);
+            });
+
+            const keyframes = [];
+            for (const month of months) {
+                const monthData = data.filter(d => d.submissionDate.toISOString().slice(0, 7) === month);
+                monthData.forEach(d => {
+                    cumulativeValues.set(d.commodity, (cumulativeValues.get(d.commodity) || 0) + d.value);
+                });
+                const frameData = Array.from(cumulativeValues, ([name, value]) => ({name, value, hsCode: commodityHsMap.get(name)})).sort((a, b) => b.value - a.value);
+                frameData.forEach((d, i) => d.rank = i);
+                keyframes.push({month, data: frameData});
+            }
+
+            if (keyframes.length === 0) return;
+            
+            const x = d3.scaleLinear().range([margin.left, width - margin.right]);
+            const y = d3.scaleBand().domain(d3.range(n)).rangeRound([margin.top, margin.top + barSize * n]).padding(0.15);
+            const color = d3.scaleOrdinal(d3.schemeTableau10);
+
+            if (!isResuming) {
+                const xAxisG = svg.append("g").attr("class", "x-axis").attr("transform", `translate(0,${margin.top})`);
+                xAxisG.append("text").attr("class", "axis-label").attr("x", width - margin.right).attr("y", -25).attr("text-anchor", "end").text("Nilai FOB (USD)");
+                svg.append("text").attr("class", "ticker").attr("x", width - margin.right).attr("y", height - 10).text("");
+            }
+            const xAxis = d3.axisTop(x).ticks(width / 160, "s").tickSizeOuter(0);
+
+            function runFrame() {
+                if (isRacePaused) return;
+                if (frameIndex >= keyframes.length) { 
+                    d3Timer.stop(); 
+                    const lastFrame = keyframes[keyframes.length - 1];
+                    const topCommodity = lastFrame.data[0];
+                    document.getElementById('summaryInsightText').textContent = `${topCommodity.name} menjadi komoditas dengan nilai ekspor tertinggi mencapai $${d3.format(",.0f")(topCommodity.value)}.`;
+                    return; 
+                }
+                const {month, data} = keyframes[frameIndex];
+                const topN = data.slice(0, n);
+                x.domain([0, d3.max(topN, d => d.value)]);
+
+                svg.select(".x-axis").transition().duration(duration).ease(d3.easeLinear).call(xAxis);
+
+                const bars = svg.selectAll(".bar-group").data(topN, d => d.name);
+                const barsEnter = bars.enter().append("g").attr("class", "bar-group").attr("transform", d => `translate(${margin.left}, ${y(n-1) + barSize})`);
+                barsEnter.append("rect").attr("width", d => x(d.value) - margin.left).attr("height", y.bandwidth()).attr("fill", d => color(d.name)).attr("rx", 4);
+                barsEnter.append("text").attr("class", "bar-label").attr("x", -10).attr("y", y.bandwidth() / 2).attr("dy", "0.35em").html(d => `${d.name} <tspan class="font-mono text-gray-500 text-xs">(${d.hsCode})</tspan>`);
+                barsEnter.append("text").attr("class", "value-label").attr("y", y.bandwidth() / 2).attr("dy", "0.35em");
+
+                const allBars = bars.merge(barsEnter);
+                allBars.transition().duration(duration).ease(d3.easeLinear)
+                    .attr("transform", (d, i) => `translate(0, ${y(i)})`)
+                    .select("rect").attr("width", d => Math.max(0, x(d.value) - margin.left));
+                allBars.select(".value-label").transition().duration(duration).ease(d3.easeLinear)
+                    .attr("x", d => x(d.value) - 5).text(d => d3.format("$,.0f")(d.value));
+                
+                bars.exit().transition().duration(duration).ease(d3.easeLinear).attr("transform", `translate(0, ${y(n-1) + barSize})`).remove();
+                
+                allBars.on("mouseover", (event, d) => {
+                    tooltip.style("opacity", 1).html(`<strong>${d.name} (${d.hsCode})</strong><br>Value: ${d3.format("$,.2f")(d.value)}`);
+                }).on("mousemove", (event) => {
+                    tooltip.style("left", (event.pageX + 15) + "px").style("top", (event.pageY - 15) + "px");
+                }).on("mouseout", () => tooltip.style("opacity", 0));
+
+                svg.select(".ticker").text(new Date(month + '-02').toLocaleString('id-ID', { month: 'long', year: 'numeric' }));
+                frameIndex++;
+            }
+
+            d3Timer = d3.interval(runFrame, duration * 2);
+        }
+
+        // --- SUBMISSIONS TAB ---
+        function initSubmissionsTab() {
+            document.getElementById('globalTableSearch').addEventListener('input', applyTableFilters);
+            
+            const tableFilters = document.querySelectorAll('#submissions-tab .searchable-dropdown input');
+            tableFilters.forEach(input => {
+                const key = input.dataset.filterKey;
+                let optionsFunc;
+                if (key === 'country') optionsFunc = getCountryOptions;
+                else if (key === 'formSka') optionsFunc = getFormSkaOptions;
+                else if (key === 'hsCode') optionsFunc = getHsCodeOptionsForTable;
+                setupSearchableDropdown(input, input.nextElementSibling, optionsFunc, applyTableFilters);
+            });
+            document.getElementById('filterTableHsLevel').addEventListener('change', () => {
+                const hsCodeInput = document.querySelector('#submissions-tab [data-filter-key="hsCode"]');
+                hsCodeInput.value = ''; hsCodeInput.dataset.value = '';
+                applyTableFilters();
+            });
+            applyTableFilters();
+        }
+
+        function applyTableFilters() {
+            const globalSearch = document.getElementById('globalTableSearch').value.toLowerCase();
+            const countryFilter = document.querySelector('#submissions-tab [data-filter-key="country"]').dataset.value || '';
+            const formSkaFilter = document.querySelector('#submissions-tab [data-filter-key="formSka"]').dataset.value || '';
+            const hsCodeFilter = document.querySelector('#submissions-tab [data-filter-key="hsCode"]').dataset.value || '';
+            const hsLevel = document.getElementById('filterTableHsLevel').value;
+
+            tableFilteredData = submissions.filter(s => {
+                const searchString = `${s.businessName} ${s.commodity} ${s.country} ${s.id} ${s.hsCode[hsLevel]}`.toLowerCase();
+                const matchesGlobal = globalSearch === '' || searchString.includes(globalSearch);
+                const matchesDropdowns = (countryFilter === '' || s.country === countryFilter) &&
+                    (formSkaFilter === '' || s.formSka === formSkaFilter) &&
+                    (hsCodeFilter === '' || s.hsCode[hsLevel] === hsCodeFilter);
+                return matchesGlobal && matchesDropdowns;
+            });
+            tableCurrentPage = 1;
+            renderPaginatedTable();
+        }
+
+        function renderPaginatedTable() {
+            const startIndex = (tableCurrentPage - 1) * ITEMS_PER_PAGE;
+            const paginatedData = tableFilteredData.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+            renderSubmissionTable(paginatedData);
+            renderPagination();
+        }
+
+        function renderSubmissionTable(data) {
+            const tableBody = document.getElementById('submissionTableBody');
+            if (!data.length) {
+                tableBody.innerHTML = `<tr><td colspan="8" class="text-center p-6 text-gray-500">Data tidak ditemukan. Sesuaikan filter Anda.</td></tr>`;
+                return;
+            }
+            const hsLevel = document.getElementById('filterTableHsLevel').value;
+            tableBody.innerHTML = data.map(s => {
+                const hsCodeInfo = SKA_DATA.hsCodeMap[s.hsCode[hsLevel]] || {name: ''};
+                return `
+                <tr id="row-${s.id}" class="hover:bg-gray-50">
+                    <td class="px-6 py-4 whitespace-nowrap">${s.no}</td>
+                    <td class="px-6 py-4 whitespace-nowrap">${s.submissionDate.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric'})}</td>
+                    <td class="px-6 py-4 font-medium text-gray-900">${s.businessName}</td>
+                    <td class="px-6 py-4">${s.commodity}</td>
+                    <td class="px-6 py-4 font-mono">${s.hsCode[hsLevel]}<br><span class="text-xs text-gray-500">${hsCodeInfo.name}</span></td>
+                    <td class="px-6 py-4">${s.country}</td>
+                    <td class="px-6 py-4 status-cell">${getStatusInfo(s.status)}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <button class="text-blue-600 hover:text-blue-900" onclick="openDetailModal('${s.id}')">Detail</button>
+                        <button class="text-green-600 hover:text-green-900 ml-4" onclick="openValidationModal('${s.id}')">Validasi</button>
+                    </td>
+                </tr>
+            `}).join('');
+        }
+        
+        function renderPagination() {
+            const totalItems = tableFilteredData.length;
+            const totalPages = Math.ceil(totalItems / ITEMS_PER_PAGE);
+            const paginationEl = document.getElementById('pagination');
+            const startItem = totalItems === 0 ? 0 : (tableCurrentPage - 1) * ITEMS_PER_PAGE + 1;
+            const endItem = Math.min(tableCurrentPage * ITEMS_PER_PAGE, totalItems);
+
+            let buttonsHtml = '';
+            if (totalPages > 1) {
+                buttonsHtml += `<button ${tableCurrentPage === 1 ? 'disabled' : ''} onclick="changePage(${tableCurrentPage - 1})" class="px-3 py-1 mx-1 rounded-md bg-white text-gray-700 border disabled:opacity-50"><i class="fas fa-chevron-left"></i></button>`;
+                
+                const pageNumbers = [];
+                if (totalPages <= 7) {
+                    for (let i = 1; i <= totalPages; i++) pageNumbers.push(i);
+                } else {
+                    pageNumbers.push(1);
+                    if (tableCurrentPage > 3) pageNumbers.push('...');
+                    for (let i = Math.max(2, tableCurrentPage - 1); i <= Math.min(totalPages - 1, tableCurrentPage + 1); i++) {
+                        pageNumbers.push(i);
+                    }
+                    if (tableCurrentPage < totalPages - 2) pageNumbers.push('...');
+                    pageNumbers.push(totalPages);
+                }
+
+                pageNumbers.forEach(num => {
+                    if (num === '...') {
+                        buttonsHtml += `<span class="px-3 py-1 mx-1">...</span>`;
+                    } else {
+                        buttonsHtml += `<button onclick="changePage(${num})" class="px-3 py-1 mx-1 rounded-md ${num === tableCurrentPage ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700 border'}">${num}</button>`;
+                    }
+                });
+
+                buttonsHtml += `<button ${tableCurrentPage === totalPages ? 'disabled' : ''} onclick="changePage(${tableCurrentPage + 1})" class="px-3 py-1 mx-1 rounded-md bg-white text-gray-700 border disabled:opacity-50"><i class="fas fa-chevron-right"></i></button>`;
+            }
+
+            paginationEl.innerHTML = `
+                <div>Menampilkan <strong>${startItem}</strong> - <strong>${endItem}</strong> dari <strong>${totalItems}</strong> hasil</div>
+                <div>${buttonsHtml}</div>
+            `;
+        }
+        
+        window.changePage = (page) => {
+            tableCurrentPage = page;
+            renderPaginatedTable();
+        }
+
+        // --- SEARCHABLE DROPDOWN LOGIC ---
+        function setupSearchableDropdown(inputId, listId, optionsFunc, onSelectCallback) {
+            const input = typeof inputId === 'string' ? document.getElementById(inputId) : inputId;
+            const list = typeof listId === 'string' ? document.getElementById(listId) : listId;
+            
+            const renderList = (filter = '') => {
+                const options = optionsFunc(filter);
+                if (options.length === 0) {
+                    list.innerHTML = `<div class="p-4 text-sm text-gray-500">Tidak ada hasil.</div>`;
+                } else {
+                    list.innerHTML = options.map(opt => `<div class="searchable-dropdown-item" data-value="${opt.value}">${opt.text}</div>`).join('');
+                }
+            };
+
+            input.addEventListener('focus', () => { renderList(input.value); list.classList.add('active'); });
+            input.addEventListener('input', () => renderList(input.value));
+            input.addEventListener('click', (e) => e.stopPropagation());
+            
+            list.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const target = e.target.closest('.searchable-dropdown-item');
+                if (target) {
+                    input.value = target.textContent.split(' ')[0]; // Only show the code/name
+                    input.dataset.value = target.dataset.value;
+                    list.classList.remove('active');
+                    if (onSelectCallback) onSelectCallback();
+                }
+            });
+            document.addEventListener('click', () => list.classList.remove('active'));
+        }
+
+        const getHsCodeText = (level, code) => {
+            let key = code.slice(0, { '2': 2, '4': 4, '6': 6, '8': 8 }[level]);
+            const hsInfo = SKA_DATA.hsCodeMap[key];
+            return hsInfo ? `${code} <span class="hs-name">${hsInfo.name}</span>` : code;
+        };
+
+        function getHsCodeOptions(filter) {
+            const level = document.getElementById('globalFilterHsLevel').value;
+            const uniqueCodes = [...new Set(submissions.map(s => s.hsCode[level]))];
+            return uniqueCodes.filter(code => {
+                const hsInfo = SKA_DATA.hsCodeMap[code.slice(0, level)];
+                const searchText = hsInfo ? `${code} ${hsInfo.name}` : code;
+                return searchText.toLowerCase().includes(filter.toLowerCase());
+            }).map(code => ({ value: code, text: getHsCodeText(level, code) }));
+        }
+        function getCountryOptions(filter) {
+            return Object.keys(SKA_DATA.countries).filter(c => c.toLowerCase().includes(filter.toLowerCase())).map(c => ({ value: c, text: c }));
+        }
+        function getFormSkaOptions(filter) {
+            return SKA_DATA.formSka.filter(f => f.toLowerCase().includes(filter.toLowerCase())).map(f => ({ value: f, text: f }));
+        }
+        function getHsCodeOptionsForTable(filter) {
+            const level = document.getElementById('filterTableHsLevel').value;
+            const uniqueCodes = [...new Set(submissions.map(s => s.hsCode[level]))];
+            return uniqueCodes.filter(code => {
+                const hsInfo = SKA_DATA.hsCodeMap[code.slice(0, level)];
+                const searchText = hsInfo ? `${code} ${hsInfo.name}` : code;
+                return searchText.toLowerCase().includes(filter.toLowerCase());
+            }).map(code => ({ value: code, text: getHsCodeText(level, code) }));
+        }
+
+        // --- MODAL LOGIC ---
+        window.closeModal = (modalId) => {
+            const modal = document.getElementById(modalId);
+            if (modal) modal.classList.remove('active');
+        }
+
+        window.openDetailModal = (id) => {
+            const modal = document.getElementById('detail-modal');
+            const s = submissions.find(sub => sub.id === id);
+            if (!s) return;
+
+            const hsLevel = document.getElementById('filterTableHsLevel').value;
+            const hsCodeInfo = SKA_DATA.hsCodeMap[s.hsCode[hsLevel]] || {name: 'N/A'};
+
+            modal.innerHTML = `
+                <div class="modal-content">
+                    <div class="flex justify-between items-start mb-4">
+                        <div>
+                            <h2 class="text-2xl font-bold text-gray-800">Detail Pengajuan: ${s.id}</h2>
+                            <p class="text-sm text-gray-500">Diajukan oleh ${s.businessName}</p>
+                        </div>
+                        <button onclick="closeModal('detail-modal')" class="text-gray-400 hover:text-gray-600 text-3xl leading-none">&times;</button>
+                    </div>
+                    
+                    <div class="border-b border-gray-200 mb-4">
+                        <nav class="-mb-px flex space-x-4" id="detail-modal-tabs">
+                            <button class="modal-tab-btn active" data-tab="info">Informasi Umum</button>
+                            <button class="modal-tab-btn" data-tab="docs">Riwayat Dokumen</button>
+                            <button class="modal-tab-btn" data-tab="audit">Audit Log</button>
+                        </nav>
+                    </div>
+
+                    <div class="modal-body">
+                        <!-- Tab Content: Informasi Umum -->
+                        <div id="info-content" class="modal-tab-content active space-y-4 text-sm">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
+                                <div><strong class="block text-gray-500">Nama Perusahaan</strong><span>${s.businessName}</span></div>
+                                <div><strong class="block text-gray-500">Tanggal Pengajuan</strong><span>${new Date(s.submissionDate).toLocaleDateString('id-ID', { dateStyle: 'long' })}</span></div>
+                                <div><strong class="block text-gray-500">Komoditas</strong><span>${s.commodity}</span></div>
+                                <div><strong class="block text-gray-500">Kode HS (Level ${hsLevel})</strong><span class="font-mono">${s.hsCode[hsLevel]} - ${hsCodeInfo.name}</span></div>
+                                <div><strong class="block text-gray-500">Negara Tujuan</strong><span>${s.country}</span></div>
+                                <div><strong class="block text-gray-500">Jenis Form SKA</strong><span>${s.formSka}</span></div>
+                                <div><strong class="block text-gray-500">ID Pengajuan</strong><span class="font-mono">${s.id}</span></div>
+                                <div><strong class="block text-gray-500">Status Saat Ini</strong><span>${getStatusInfo(s.status)}</span></div>
+                            </div>
+                        </div>
+
+                        <!-- Tab Content: Riwayat Dokumen -->
+                        <div id="docs-content" class="modal-tab-content">
+                            <table class="min-w-full text-sm">
+                                <thead class="bg-gray-50"><tr>
+                                    <th class="px-4 py-2 text-left font-medium text-gray-500">Nama Dokumen</th>
+                                    <th class="px-4 py-2 text-left font-medium text-gray-500">Status</th>
+                                    <th class="px-4 py-2 text-left font-medium text-gray-500">Tgl Unggah</th>
+                                    <th class="px-4 py-2 text-left font-medium text-gray-500">Aksi</th>
+                                </tr></thead>
+                                <tbody class="divide-y divide-gray-200">
+                                    ${s.documents.map(doc => `
+                                        <tr>
+                                            <td class="px-4 py-3 font-medium">${doc.name}</td>
+                                            <td class="px-4 py-3">
+                                                <span class="px-2 py-1 text-xs rounded-full ${doc.status === 'Uploaded' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">${doc.status}</span>
+                                            </td>
+                                            <td class="px-4 py-3">${doc.status === 'Uploaded' ? new Date(doc.uploadDate).toLocaleDateString('id-ID') : '-'}</td>
+                                            <td class="px-4 py-3">
+                                                ${doc.fileUrl ? `<a href="${doc.fileUrl}" target="_blank" class="text-blue-600 hover:underline"><i class="fas fa-eye mr-1"></i>Lihat</a>` : `<span class="text-gray-400">N/A</span>`}
+                                            </td>
+                                        </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- Tab Content: Audit Log -->
+                        <div id="audit-content" class="modal-tab-content">
+                             <table class="min-w-full text-sm">
+                                <thead class="bg-gray-50"><tr>
+                                    <th class="px-4 py-2 text-left font-medium text-gray-500">Tanggal</th>
+                                    <th class="px-4 py-2 text-left font-medium text-gray-500">Aksi / Status</th>
+                                    <th class="px-4 py-2 text-left font-medium text-gray-500">Petugas</th>
+                                    <th class="px-4 py-2 text-left font-medium text-gray-500">Keterangan</th>
+                                </tr></thead>
+                                <tbody class="divide-y divide-gray-200">
+                                    ${s.auditHistory.map(log => `
+                                        <tr>
+                                            <td class="px-4 py-3">${new Date(log.date).toLocaleDateString('id-ID')}</td>
+                                            <td class="px-4 py-3 font-semibold">${log.status}</td>
+                                            <td class="px-4 py-3">${log.officer}</td>
+                                            <td class="px-4 py-3 text-gray-600">${log.remarks}</td>
+                                        </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            `;
+            modal.classList.add('active');
+
+            const modalTabs = modal.querySelectorAll('.modal-tab-btn');
+            modalTabs.forEach(tab => {
+                tab.addEventListener('click', () => {
+                    const tabName = tab.dataset.tab;
+                    modalTabs.forEach(t => t.classList.remove('active'));
+                    tab.classList.add('active');
+                    modal.querySelectorAll('.modal-tab-content').forEach(c => c.classList.remove('active'));
+                    modal.querySelector(`#${tabName}-content`).classList.add('active');
+                });
+            });
+        };
+
+        window.openValidationModal = (id) => {
+            const modal = document.getElementById('validation-modal');
+            const s = submissions.find(sub => sub.id === id);
+            if (!s) return;
+
+            modal.innerHTML = `
+                <div class="modal-content">
+                    <div class="flex justify-between items-start mb-4">
+                        <h2 class="text-2xl font-bold text-gray-800">Validasi Pengajuan: ${s.id}</h2>
+                        <button onclick="closeModal('validation-modal')" class="text-gray-400 hover:text-gray-600 text-3xl leading-none">&times;</button>
+                    </div>
+                    <div class="modal-body space-y-6">
+                        <div>
+                            <h3 class="font-semibold mb-2">Checklist Kelengkapan Dokumen</h3>
+                            <div class="space-y-3">
+                                ${s.documents.map(doc => `
+                                    <div>
+                                        <label class="flex items-center">
+                                            <input type="checkbox" ${doc.status === 'Uploaded' ? 'checked' : ''} class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                                            <span class="ml-3 text-sm">${doc.name}</span>
+                                        </label>
+                                        <textarea class="mt-2 w-full text-xs p-2 border rounded-md" rows="1" placeholder="Catatan untuk ${doc.name}..."></textarea>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                        <div class="border-t pt-4 flex flex-wrap gap-3 justify-end">
+                            <button onclick="handleValidationAction('${id}', 'contact')" class="px-4 py-2 text-sm font-medium rounded-md bg-gray-200 text-gray-800 hover:bg-gray-300">Hubungi Eksportir</button>
+                            <button onclick="handleValidationAction('${id}', 'Revisi Diminta')" class="px-4 py-2 text-sm font-medium rounded-md bg-yellow-500 text-white hover:bg-yellow-600">Minta Revisi</button>
+                            <button onclick="handleValidationAction('${id}', 'Ditolak')" class="px-4 py-2 text-sm font-medium rounded-md bg-red-600 text-white hover:bg-red-700">Tolak</button>
+                            <button onclick="handleValidationAction('${id}', 'Disetujui')" class="px-4 py-2 text-sm font-medium rounded-md bg-green-600 text-white hover:bg-green-700">Setujui & Terbitkan</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            modal.classList.add('active');
+        };
+
+        window.handleValidationAction = (id, action) => {
+            closeModal('validation-modal');
+            const submission = submissions.find(s => s.id === id);
+            if (!submission) return;
+
+            if (action === 'contact') {
+                openMessageModal(id);
+                return;
+            }
+            
+            const finalStatus = action === 'Disetujui' ? 'Diterbitkan' : action;
+            submission.status = finalStatus;
+            submission.auditHistory.push({
+                status: finalStatus,
+                date: new Date().toISOString(),
+                officer: 'Budi Santoso',
+                remarks: `Pengajuan statusnya diubah menjadi ${finalStatus} oleh verifikator.`
+            });
+
+            const row = document.getElementById(`row-${id}`);
+            if (row) {
+                row.querySelector('.status-cell').innerHTML = getStatusInfo(finalStatus);
+                row.classList.add('bg-blue-50');
+                setTimeout(() => row.classList.remove('bg-blue-50'), 2000);
+            }
+            
+            logAudit('VALIDATE', 'Budi Santoso', id);
+            showToast(`Pengajuan ${id} telah berhasil diubah statusnya menjadi "${finalStatus}".`, 'success');
+            applyGlobalFilters();
+            initProfileDropdown();
+        };
+
+        window.openMessageModal = (id) => {
+            const modal = document.getElementById('message-modal');
+            const s = submissions.find(sub => sub.id === id);
+            if (!s) return;
+
+            modal.innerHTML = `
+                <div class="modal-content !max-w-lg">
+                    <div class="flex justify-between items-start mb-4">
+                        <h2 class="text-xl font-bold text-gray-800">Kirim Pesan ke ${s.businessName}</h2>
+                        <button onclick="closeModal('message-modal')" class="text-gray-400 hover:text-gray-600 text-3xl leading-none">&times;</button>
+                    </div>
+                    <div class="modal-body space-y-4">
+                        <p class="text-sm">Terkait Pengajuan: <strong class="font-mono">${id}</strong></p>
+                        <textarea id="message-text" class="w-full p-2 border rounded-md" rows="5" placeholder="Tulis pesan Anda di sini..."></textarea>
+                        <div class="flex justify-end">
+                            <button onclick="sendMessage('${id}')" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">
+                                <i class="fas fa-paper-plane mr-2"></i>Kirim Pesan
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            modal.classList.add('active');
+        };
+
+        window.sendMessage = (id) => {
+            const text = document.getElementById('message-text').value;
+            if (text.trim() === '') {
+                showToast('Pesan tidak boleh kosong.', 'error');
+                return;
+            }
+            
+            if (!chatData[id]) {
+                const s = submissions.find(sub => sub.id === id);
+                chatData[id] = {
+                    businessName: s.businessName,
+                    status: 'Dibalas',
+                    lastActivity: new Date().toISOString(),
+                    messages: []
+                };
+            }
+            const chat = chatData[id];
+            chat.messages.push({
+                from: 'officer',
+                text: text,
+                time: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
+            });
+            chat.status = 'Dibalas';
+            chat.lastActivity = new Date().toISOString();
+            
+            localStorage.setItem('ipskaChatData', JSON.stringify(chatData));
+            initCommunicationTab();
+            
+            closeModal('message-modal');
+            showToast('Pesan berhasil dikirim.', 'success');
+        };
+
+        // --- COMMUNICATION TAB ---
+        function initCommunicationTab() {
+            const chatListEl = document.getElementById('chatList');
+            if(!chatListEl) return;
+            
+            const sortedChats = Object.entries(chatData).sort(([,a], [,b]) => new Date(b.lastActivity) - new Date(a.lastActivity));
+
+            chatListEl.innerHTML = sortedChats.map(([id, chat]) => {
+                const isUnread = chat.status === 'Menunggu Balasan';
+                const lastMessage = chat.messages[chat.messages.length - 1];
+                return `
+                <div id="chat-item-${id}" class="p-4 hover:bg-gray-100 cursor-pointer flex justify-between items-center ${isUnread ? 'font-bold' : ''}" onclick="openChat('${id}')">
+                    <div>
+                        <p class="text-sm ${isUnread ? 'text-gray-900' : 'text-gray-700'}">${chat.businessName}</p>
+                        <p class="text-xs text-gray-500 truncate w-48">${lastMessage ? lastMessage.text : 'Tidak ada pesan'}</p>
+                    </div>
+                    ${isUnread ? `<span class="bg-blue-500 text-white text-xs font-bold rounded-full h-2 w-2"></span>` : ''}
+                </div>`;
+            }).join('');
+            
+            document.getElementById('chat-notification').style.display = Object.values(chatData).some(c => c.status === 'Menunggu Balasan') ? 'block' : 'none';
+        }
+
+        window.openChat = (id) => {
+            const chat = chatData[id];
+            if (!chat) return;
+            document.querySelectorAll('[id^="chat-item-"]').forEach(el => el.classList.remove('bg-blue-50'));
+            document.getElementById(`chat-item-${id}`).classList.add('bg-blue-50');
+            
+            if (chat.status === 'Menunggu Balasan') {
+                chat.status = 'Dibaca';
+                localStorage.setItem('ipskaChatData', JSON.stringify(chatData));
+                initCommunicationTab();
+            }
+
+            document.getElementById('chatSkaId').textContent = id;
+            const chatInput = document.getElementById('chatInput');
+            const chatSendBtn = document.getElementById('chatSendBtn');
+            chatInput.disabled = false; chatSendBtn.disabled = false;
+
+            const statusIndicator = document.getElementById('chat-status-indicator');
+            const statusInfo = {
+                'Menunggu Balasan': { text: 'Menunggu Balasan', color: 'bg-red-100 text-red-800' },
+                'Dibalas': { text: 'Anda Membalas', color: 'bg-gray-100 text-gray-800' },
+                'Dibaca': { text: 'Pesan Dibaca', color: 'bg-blue-100 text-blue-800' }
+            };
+            const currentStatus = statusInfo[chat.status] || { text: '', color: ''};
+            statusIndicator.textContent = currentStatus.text;
+            statusIndicator.className = `text-xs font-medium px-2 py-1 rounded-full ${currentStatus.color}`;
+
+            const renderMessages = () => {
+                const chatMessagesEl = document.getElementById('chatMessages');
+                if (chat.messages.length === 0) {
+                    chatMessagesEl.innerHTML = `<div class="flex flex-col items-center justify-center h-full text-gray-500"><i class="fas fa-comment-slash text-5xl mb-4"></i><p>Tidak ada pesan dalam percakapan ini.</p></div>`;
+                } else {
+                    chatMessagesEl.innerHTML = chat.messages.map(msg => `
+                        <div class="flex ${msg.from === 'officer' ? 'justify-end' : 'justify-start'}">
+                            <div class="max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${msg.from === 'officer' ? 'bg-blue-600 text-white' : 'bg-white shadow-sm'}">
+                                <p>${msg.text}</p><p class="text-xs mt-1 ${msg.from === 'officer' ? 'text-blue-200' : 'text-gray-400'} text-right">${msg.time}</p>
+                            </div></div>`).join('');
+                }
+                chatMessagesEl.scrollTop = chatMessagesEl.scrollHeight;
+            };
+            renderMessages();
+            
+            chatSendBtn.onclick = () => {
+                if (chatInput.value.trim() === '') return;
+                const time = new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+                chat.messages.push({ from: 'officer', text: chatInput.value, time });
+                chat.status = 'Dibalas';
+                chat.lastActivity = new Date().toISOString();
+                localStorage.setItem('ipskaChatData', JSON.stringify(chatData));
+                renderMessages();
+                initCommunicationTab();
+                chatInput.value = '';
+                
+                setTimeout(() => {
+                    const replyTime = new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+                    chat.messages.push({ from: 'exporter', text: 'Baik, terima kasih atas respons cepatnya.', time: replyTime });
+                    chat.status = 'Menunggu Balasan';
+                    chat.lastActivity = new Date().toISOString();
+                    localStorage.setItem('ipskaChatData', JSON.stringify(chatData));
+                    if(document.getElementById(`chat-item-${id}`).classList.contains('bg-blue-50')) {
+                        renderMessages();
+                    }
+                    initCommunicationTab();
+                }, 3500);
+            };
+        };
+
+        // --- HEADER DROPDOWNS ---
+        function initNotifications() {
+            const dropdown = document.getElementById('notificationDropdown');
+            const unreadChats = Object.entries(chatData).filter(([,chat]) => chat.status === 'Menunggu Balasan');
+            document.getElementById('notification-dot').style.display = unreadChats.length > 0 ? 'block' : 'none';
+            
+            let content = '<div class="p-3 font-bold border-b text-sm text-gray-800">Notifikasi</div>';
+            if (unreadChats.length === 0) {
+                content += '<p class="p-4 text-sm text-gray-500">Tidak ada notifikasi baru.</p>';
+            } else {
+                 content += unreadChats.map(([id, chat]) => {
+                    const lastMessage = chat.messages[chat.messages.length - 1];
+                    return `<div class="p-3 border-b hover:bg-gray-100 cursor-pointer" onclick="document.querySelector('[data-tab=communication]').click(); openChat('${id}');">
+                        <p class="font-semibold text-sm">Pesan baru dari ${chat.businessName}</p>
+                        <p class="text-xs text-gray-600 truncate">${lastMessage.text}</p>
+                    </div>`
+                }).join('');
+            }
+            dropdown.innerHTML = content;
+        }
+
+        function initProfileDropdown() {
+            const dropdown = document.getElementById('profileDropdown');
+            const officerName = 'Budi Santoso';
+            const officerSubs = submissions.filter(s => s.officer === officerName);
+            const finalStatuses = ['Disetujui', 'Ditolak', 'Diterbitkan'];
+            const validatedSubs = officerSubs.filter(s => finalStatuses.includes(s.status));
+            
+            const totalValidated = validatedSubs.length;
+            const errors = validatedSubs.filter(s => s.status === 'Ditolak').length;
+            const accuracy = totalValidated > 0 ? ((totalValidated - errors) / totalValidated * 100).toFixed(1) : '100.0';
+
+            let totalValidationTime = 0;
+            validatedSubs.forEach(s => {
+                const inspectionLog = s.auditHistory.find(h => h.status === 'Pemeriksaan');
+                const finalLog = s.auditHistory.find(h => finalStatuses.includes(h.status));
+                if (inspectionLog && finalLog) {
+                    const timeDiff = new Date(finalLog.date) - new Date(inspectionLog.date);
+                    totalValidationTime += timeDiff;
+                }
+            });
+            const avgTime = totalValidated > 0 ? (totalValidationTime / totalValidated / (1000 * 60 * 60 * 24)).toFixed(1) : 0;
+            
+            const last5Validated = validatedSubs.slice(-5).reverse();
+
+            dropdown.innerHTML = `
+                <div class="p-4 border-b">
+                    <p class="font-bold text-gray-800">${officerName}</p>
+                    <p class="text-sm text-gray-500">b.santoso@dagang.go.id</p>
+                </div>
+                <div class="p-4 bg-gray-50">
+                    <h4 class="font-bold text-sm mb-3">Dashboard Saya</h4>
+                    <div class="grid grid-cols-3 gap-4 text-center">
+                        <div>
+                            <p class="text-xl font-bold text-blue-600">${totalValidated}</p>
+                            <p class="text-xs text-gray-500">Verifikasi</p>
+                        </div>
+                        <div>
+                            <p class="text-xl font-bold text-green-600">${accuracy}%</p>
+                            <p class="text-xs text-gray-500">Akurasi</p>
+                        </div>
+                        <div>
+                            <p class="text-xl font-bold text-orange-500">${avgTime}</p>
+                            <p class="text-xs text-gray-500">Avg. Hari</p>
+                        </div>
+                    </div>
+                    <h5 class="font-bold text-xs mt-4 mb-2">5 Validasi Terakhir</h5>
+                    <ul class="text-xs space-y-1">
+                        ${last5Validated.map(s => `
+                            <li class="flex justify-between items-center text-gray-600">
+                                <span class="font-mono">${s.id}</span>
+                                ${getStatusInfo(s.status)}
+                            </li>
+                        `).join('') || '<li class="text-gray-500">Belum ada data.</li>'}
+                    </ul>
+                </div>
+                <div class="p-2 border-t">
+                    <a href="#" class="block px-4 py-2 text-sm text-gray-700 rounded-md hover:bg-gray-100">Pengaturan Akun</a>
+                    <a href="#" class="block px-4 py-2 text-sm text-red-600 rounded-md hover:bg-red-50">Keluar</a>
+                </div>
+            `;
+        }
+        
+        // --- OTHER TABS ---
+        function initPerformanceTab() {
+            const officerData = SKA_DATA.officers.map(officer => {
+                const officerSubs = submissions.filter(s => s.officer === officer);
+                const verified = officerSubs.filter(s => ['Disetujui', 'Diterbitkan', 'Ditolak'].includes(s.status)).length;
+                const errors = officerSubs.filter(s => s.status === 'Ditolak').length;
+                const accuracy = verified > 0 ? ((verified - errors) / verified) * 100 : 100;
+                return { name: officer, verified, errors, accuracy: accuracy.toFixed(1) };
+            });
+
+            document.getElementById('officerPerformanceTable').innerHTML = officerData.map(o => `
+                <tr class="hover:bg-gray-50"><td class="px-6 py-4 font-medium">${o.name}</td><td class="px-6 py-4">${o.verified}</td>
+                <td class="px-6 py-4">${o.errors}</td><td class="px-6 py-4">${o.accuracy}%</td></tr>`).join('');
+            
+            renderChart('officerPerformanceChart', {
+                type: 'radar',
+                data: {
+                    labels: ['Verifikasi (skala)', 'Akurasi (%)', 'Kecepatan (avg)'],
+                    datasets: officerData.map((o, i) => ({
+                        label: o.name,
+                        data: [o.verified / 5, o.accuracy, 100 - (i * 5 + 10)], // Scaled for radar
+                        borderColor: ['#3b82f6', '#10b981', '#ef4444'][i],
+                        backgroundColor: ['rgba(59, 130, 246, 0.2)', 'rgba(16, 185, 129, 0.2)', 'rgba(239, 68, 68, 0.2)'][i],
+                    }))
+                },
+                options: { responsive: true, scales: { r: { beginAtZero: true, max: 100 } } }
+            });
+            document.getElementById('performanceInsightText').textContent = 'Citra Lestari menunjukkan jumlah verifikasi tertinggi, sementara Budi Santoso memiliki akurasi terbaik.';
+        }
+        function initAnalysisTab() {
+            document.getElementById('analysisDimension').addEventListener('change', renderAnalysisCharts);
+            renderAnalysisCharts();
+        }
+        function renderAnalysisCharts() {
+            const dimension = document.getElementById('analysisDimension').value;
+            const filterContainer = document.getElementById('analysisFilterContainer');
+            const chartContainer = document.getElementById('analysisChartContainer');
+            const mapContainer = document.getElementById('leafletMapContainer');
+            
+            chartContainer.style.display = 'block'; mapContainer.style.display = 'none';
+            if (map) { map.remove(); map = null; }
+            filterContainer.innerHTML = '';
+
+            if (dimension === 'global') {
+                const monthlyData = d3.rollup(submissions, v => v.length, d => d.submissionDate.toISOString().slice(0, 7));
+                const sortedMonths = Array.from(monthlyData.keys()).sort();
+                renderChart('exportTrendChart', { type: 'line', data: { labels: sortedMonths, datasets: [{ label: 'Volume Pengajuan', data: sortedMonths.map(m => monthlyData.get(m)), borderColor: '#1e3a8a', tension: 0.3, fill: true, backgroundColor: 'rgba(30, 58, 138, 0.1)' }] }, options: { responsive: true, maintainAspectRatio: false }});
+                document.getElementById('analysisInsightText').textContent = 'Volume pengajuan global menunjukkan tren kenaikan stabil, dengan puncak di berbagai bulan sepanjang tahun.';
+            } else if (dimension === 'country') {
+                chartContainer.style.display = 'none'; mapContainer.style.display = 'block';
+                filterContainer.innerHTML = `<div><label class="text-sm font-medium">Pilih Komoditas</label><select id="analysisCommodityFilter" class="w-full p-2 border border-gray-300 rounded-md"></select></div>`;
+                const commodityFilter = document.getElementById('analysisCommodityFilter');
+                
+                const uniqueCommodities = [...new Map(submissions.map(s => [s.commodity, s])).values()];
+                commodityFilter.innerHTML = '<option value="">Semua Komoditas</option>' + uniqueCommodities.map(c => {
+                    const hsCode = c.hsCode['8'];
+                    const hsInfo = SKA_DATA.hsCodeMap[hsCode] || {name: 'N/A'};
+                    return `<option value="${c.commodity}">${hsCode} - ${c.commodity}</option>`;
+                }).join('');
+
+                commodityFilter.addEventListener('change', renderAnalysisMap);
+                
+                setTimeout(() => {
+                    map = L.map('leafletMapContainer').setView([-2.5, 118], 4);
+                    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+                    renderAnalysisMap();
+                }, 10);
+            }
+        }
+        function renderAnalysisMap() {
+            if(!map) return;
+            map.eachLayer(layer => { if (layer instanceof L.Marker || layer instanceof L.LayerGroup) map.removeLayer(layer); });
+            const selectedCommodity = document.getElementById('analysisCommodityFilter')?.value;
+            const dataToMap = selectedCommodity ? submissions.filter(s => s.commodity === selectedCommodity) : submissions;
+            const countryData = d3.group(dataToMap, d => d.country);
+            
+            countryData.forEach((subs, country) => {
+                const coords = SKA_DATA.countries[country];
+                if(coords) {
+                    const [lon, lat] = coords;
+                    const hsCode = subs[0].hsCode['8'];
+                    const hsInfo = SKA_DATA.hsCodeMap[hsCode] || {name: 'N/A'};
+                    let popupContent = `<b>${country}</b><br>Total Pengajuan: ${subs.length}`;
+                    if(selectedCommodity){
+                        popupContent = `<b>${country}</b><br>Komoditas: ${selectedCommodity}<br>Kode HS: ${hsCode} - ${hsInfo.name}<br>Jumlah: ${subs.length}`;
+                    }
+                    L.marker([lat, lon]).addTo(map).bindPopup(popupContent);
+                }
+            });
+            document.getElementById('analysisInsightText').textContent = `Peta menunjukkan distribusi ekspor ${selectedCommodity || 'semua komoditas'}. Tiongkok dan USA menjadi tujuan utama.`;
+        }
+
+        // REVISION: Audit Tab updated functions
+        function initAuditTab() {
+            const select = document.getElementById('timelineSubmissionSelect');
+            // Populate dropdown with recent submissions
+            select.innerHTML = submissions.slice(0, 100).map(s => `<option value="${s.id}">${s.id} - ${s.businessName}</option>`).join('');
+            select.addEventListener('change', (e) => renderAuditTimeline(e.target.value));
+            
+            // Initial render
+            if (submissions.length > 0) {
+                renderAuditTimeline(submissions[0].id);
+            }
+
+            renderAuditLog();
+            document.getElementById('simSurge').addEventListener('input', updateSimulation);
+            updateSimulation();
+        }
+
+        function renderAuditTimeline(id) {
+            const submission = submissions.find(s => s.id === id);
+            if (!submission) return;
+
+            const timelineEl = document.getElementById('auditTimeline');
+            timelineEl.innerHTML = submission.auditHistory.map(item => {
+                const info = getStatusInfo(item.status, false);
+                return `
+                <div class="audit-timeline-item">
+                    <div class="audit-timeline-icon">
+                        <i class="fas ${info.icon} text-lg"></i>
+                    </div>
+                    <div class="ml-4">
+                        <p class="font-semibold text-gray-800">${item.status} <span class="font-normal text-gray-500">oleh ${item.officer}</span></p>
+                        <p class="text-sm text-gray-500">${new Date(item.date).toLocaleString('id-ID', {dateStyle: 'full', timeStyle: 'short'})}</p>
+                        <p class="text-sm text-gray-600 mt-1">${item.remarks}</p>
+                    </div>
+                </div>`;
+            }).join('');
+        }
+
+        function renderAuditLog() {
+            document.getElementById('auditLogBody').innerHTML = auditLogs.slice(0, 50).map(log => `
+                <tr class="hover:bg-gray-50"><td class="px-4 py-2 text-sm">${new Date(log.time).toLocaleString('id-ID')}</td>
+                <td class="px-4 py-2 text-sm">${log.action}</td><td class="px-4 py-2 text-sm font-medium">${log.user}</td>
+                <td class="px-4 py-2 text-sm font-mono">${log.submissionId}</td></tr>`).join('');
+        }
+        function updateSimulation() {
+            const surge = parseInt(document.getElementById('simSurge').value);
+            document.getElementById('simSurgeValue').textContent = `${surge}%`;
+            const delay = (0.5 * (surge / 20)).toFixed(1);
+            const workload = (100 * (1 + surge / 100)).toFixed(0);
+            const errorRate = (5 * (1 + surge / 50)).toFixed(1);
+            document.getElementById('simDelay').textContent = `${delay} hari`;
+            document.getElementById('simWorkload').textContent = `${workload}%`;
+            document.getElementById('simErrorRate').textContent = `${errorRate}%`;
+            document.getElementById('simulationInsightText').textContent = `Kenaikan ${surge}% volume akan menambah waktu verifikasi ${delay} hari dan menaikkan potensi error ke ${errorRate}%.`;
+        }
+
+        // --- INITIALIZE DASHBOARD ---
+        function initializeDashboard() {
+            initSummaryTab();
+            setupDropdownToggle('notificationBtn', 'notificationDropdown', initNotifications);
+            setupDropdownToggle('profileBtn', 'profileDropdown', initProfileDropdown);
+        }
+
+        initializeDashboard();
+    });
+    </script>
+</body>
+</html>
